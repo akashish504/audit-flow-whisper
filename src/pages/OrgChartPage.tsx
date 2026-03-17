@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { Company } from '@/data/mockData';
-import { ChevronRight, ChevronDown, Paperclip, CheckCircle2 } from 'lucide-react';
+import { Paperclip, CheckCircle2, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-function OrgNode({ company, children: childCompanies, level = 0 }: { company: Company; children: Company[]; level?: number }) {
-  const [expanded, setExpanded] = useState(true);
+function OrgNodeCard({ company }: { company: Company }) {
   const { attachReport } = useAppState();
-  const hasChildren = childCompanies.length > 0;
 
   const handleAttach = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -16,33 +14,26 @@ function OrgNode({ company, children: childCompanies, level = 0 }: { company: Co
   };
 
   const statusColor = {
-    'Pending Review': 'bg-warning/20 text-warning',
-    'Discrepancy Identified': 'bg-destructive/20 text-destructive',
-    'Clarification Requested': 'bg-primary/20 text-primary',
-    'Resolved': 'bg-success/20 text-success',
+    'Pending Review': 'bg-warning/20 text-warning border-warning/30',
+    'Discrepancy Identified': 'bg-destructive/20 text-destructive border-destructive/30',
+    'Clarification Requested': 'bg-primary/20 text-primary border-primary/30',
+    'Resolved': 'bg-success/20 text-success border-success/30',
   }[company.status];
 
   return (
-    <div className={level > 0 ? 'ml-6 border-l border-border' : ''}>
-      <div
-        className="flex items-center gap-2 px-3 py-2.5 hover:bg-surface transition-quart cursor-pointer group"
-        onClick={() => hasChildren && setExpanded(!expanded)}
-      >
-        <div className="w-4 shrink-0">
-          {hasChildren && (expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />)}
+    <div className="relative flex flex-col items-center">
+      <div className="bg-card border border-border rounded-lg shadow-sm px-4 py-3 min-w-[200px] max-w-[240px] hover:shadow-md transition-quart group">
+        <div className="flex items-center gap-2 mb-1.5">
+          <Building2 className="h-4 w-4 text-primary shrink-0" />
+          <span className="text-sm font-semibold text-foreground truncate">{company.name}</span>
         </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-foreground truncate">{company.name}</span>
-            <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-sm ${statusColor}`}>
-              {company.status}
-            </span>
-          </div>
-          <span className="text-xs text-muted-foreground">{company.auditPeriod}</span>
+        <div className="flex items-center gap-2 mb-2">
+          <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-sm border ${statusColor}`}>
+            {company.status}
+          </span>
         </div>
-
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-quart">
+        <div className="text-xs text-muted-foreground mb-2">{company.auditPeriod}</div>
+        <div className="flex items-center justify-end">
           {company.hasAuditReport ? (
             <span className="flex items-center gap-1 text-xs text-success">
               <CheckCircle2 className="h-3.5 w-3.5" /> Attached
@@ -50,44 +41,75 @@ function OrgNode({ company, children: childCompanies, level = 0 }: { company: Co
           ) : (
             <button
               onClick={handleAttach}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary press-effect px-2 py-1 rounded-sm border border-border"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary press-effect px-2 py-1 rounded-sm border border-border opacity-0 group-hover:opacity-100 transition-quart"
             >
-              <Paperclip className="h-3 w-3" /> Attach Report
+              <Paperclip className="h-3 w-3" /> Attach
             </button>
           )}
         </div>
       </div>
-
-      {expanded && hasChildren && (
-        <OrgTree parentId={company.id} level={level + 1} />
-      )}
     </div>
   );
 }
 
-function OrgTree({ parentId, level = 0 }: { parentId: string | null; level?: number }) {
-  const { companies } = useAppState();
+function TreeBranch({ parentId, companies }: { parentId: string; companies: Company[] }) {
   const children = companies.filter(c => c.parentId === parentId);
+  if (children.length === 0) return null;
 
   return (
-    <>
-      {children.map(company => {
-        const grandchildren = companies.filter(c => c.parentId === company.id);
-        return <OrgNode key={company.id} company={company} children={grandchildren} level={level} />;
-      })}
-    </>
+    <div className="flex flex-col items-center">
+      {/* Vertical line down from parent */}
+      <div className="w-px h-6 bg-border" />
+
+      {/* Horizontal connector bar */}
+      {children.length > 1 && (
+        <div className="relative flex items-start">
+          <div
+            className="absolute top-0 bg-border"
+            style={{
+              height: '1px',
+              left: `calc(100% / ${children.length * 2})`,
+              right: `calc(100% / ${children.length * 2})`,
+            }}
+          />
+        </div>
+      )}
+
+      {/* Children row */}
+      <div className="flex items-start gap-4">
+        {children.map((child, i) => (
+          <div key={child.id} className="flex flex-col items-center">
+            {/* Vertical line down to child if multiple siblings */}
+            {children.length > 1 && <div className="w-px h-4 bg-border" />}
+            <OrgNodeCard company={child} />
+            <TreeBranch parentId={child.id} companies={companies} />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
 export default function OrgChartPage() {
+  const { companies } = useAppState();
+  const roots = companies.filter(c => c.parentId === null);
+
   return (
-    <div className="h-full overflow-auto p-4">
-      <div className="mb-4">
+    <div className="h-full overflow-auto p-6">
+      <div className="mb-6">
         <h1 className="text-lg font-semibold tracking-tight text-foreground">Entity Structure</h1>
         <p className="text-xs text-muted-foreground">Portfolio companies and subsidiaries</p>
       </div>
-      <div className="border border-border rounded-lg bg-surface overflow-hidden">
-        <OrgTree parentId={null} />
+
+      <div className="overflow-auto pb-12">
+        <div className="inline-flex flex-col items-center min-w-full">
+          {roots.map(root => (
+            <div key={root.id} className="flex flex-col items-center">
+              <OrgNodeCard company={root} />
+              <TreeBranch parentId={root.id} companies={companies} />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
