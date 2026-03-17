@@ -74,7 +74,11 @@
 
 @layer utilities {
   .press-effect {
-    @apply transition-transform duration-[50ms] active:scale-[0.98];
+    transition-property: transform;
+    transition-duration: 50ms;
+    &:active {
+      transform: scale(0.98);
+    }
   }
 
   .data-header {
