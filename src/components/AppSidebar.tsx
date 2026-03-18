@@ -1,4 +1,4 @@
-import { GitBranch, Search, Filter, Mail, FileText } from 'lucide-react';
+import { Building2, Mail, FileText, Tag } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import {
@@ -14,16 +14,15 @@ import {
 } from '@/components/ui/sidebar';
 
 const navItems = [
-  { title: 'Org Chart', url: '/', icon: GitBranch },
-  { title: 'Audit Pipeline', url: '/pipeline', icon: Filter },
-  { title: 'Comparison Workspace', url: '/workspace', icon: Search },
-  { title: 'Communications', url: '/communications', icon: Mail },
+  { title: 'Portfolio Companies', url: '/', icon: Building2 },
+  { title: 'Email Templates', url: '/email-templates', icon: Mail },
+  { title: 'File Tagging', url: '/file-tagging', icon: FileText },
+  { title: 'Email Tagging', url: '/email-tagging', icon: Tag },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const location = useLocation();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
