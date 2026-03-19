@@ -59,7 +59,7 @@ function TreeBranch({ parentId, companies }: { parentId: string; companies: Comp
   return (
     <div className="flex flex-col items-center">
       {/* Vertical line down from parent */}
-      <div className="w-px h-6 bg-border" />
+      <div className="w-px h-6 bg-muted-foreground/40" />
 
       {/* Horizontal connector bar */}
       {children.length > 1 && (
