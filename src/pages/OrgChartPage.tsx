@@ -26,7 +26,7 @@ function FilePickerPopover({ companyId, companyName, onClose }: { companyId: str
   };
 
   return (
-    <div ref={ref} className="absolute top-0 left-full z-50 ml-2 w-72 bg-popover border border-border rounded-lg shadow-lg p-2">
+    <div ref={ref} className="absolute top-full left-1/2 -translate-x-1/2 z-50 mt-2 w-72 bg-popover border border-border rounded-lg shadow-lg p-2">
       <div className="flex items-center gap-2 mb-2">
         <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <input
@@ -130,23 +130,35 @@ function OrgNodeCard({ company }: { company: Company }) {
   );
 }
 
-function TreeBranch({ parentId, companies }: { parentId: string; companies: Company[] }) {
-  const children = companies.filter(c => c.parentId === parentId);
-  if (children.length === 0) return null;
+function TreeNode({ company, companies }: { company: Company; companies: Company[] }) {
+  const children = companies.filter(c => c.parentId === company.id);
 
   return (
-    <div className="flex items-center">
-      {/* Horizontal connector from parent */}
-      <div className="w-8 h-px bg-foreground/60" />
-      <div className="flex flex-col gap-3">
-        {children.map((child) => (
-          <div key={child.id} className="flex items-center">
-            {children.length > 1 && <div className="w-6 h-px bg-foreground/60" />}
-            <OrgNodeCard company={child} />
-            <TreeBranch parentId={child.id} companies={companies} />
+    <div className="flex flex-col items-center">
+      <OrgNodeCard company={company} />
+      {children.length > 0 && (
+        <>
+          <div className="w-0.5 h-6 bg-foreground/40" />
+          {children.length > 1 && (
+            <div className="relative w-full flex justify-center">
+              <div
+                className="h-0.5 bg-foreground/40"
+                style={{
+                  width: `calc(100% - ${100 / children.length}%)`,
+                }}
+              />
+            </div>
+          )}
+          <div className="flex gap-8">
+            {children.map(child => (
+              <div key={child.id} className="flex flex-col items-center">
+                <div className="w-0.5 h-6 bg-foreground/40" />
+                <TreeNode company={child} companies={companies} />
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </div>
   );
 }
@@ -163,12 +175,9 @@ export default function OrgChartPage() {
       </div>
 
       <div className="overflow-auto pb-12">
-        <div className="inline-flex flex-col gap-6 min-w-full">
+        <div className="inline-flex flex-col gap-10 items-center min-w-full">
           {roots.map(root => (
-            <div key={root.id} className="flex items-start">
-              <OrgNodeCard company={root} />
-              <TreeBranch parentId={root.id} companies={companies} />
-            </div>
+            <TreeNode key={root.id} company={root} companies={companies} />
           ))}
         </div>
       </div>
