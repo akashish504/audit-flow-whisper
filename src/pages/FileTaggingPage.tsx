@@ -14,6 +14,17 @@ const statusConfig: Record<string, { icon: React.ElementType; color: string }> =
 export default function FileTaggingPage() {
   const [files, setFiles] = useState<TaggedFile[]>(initialFiles);
   const [taggingFileId, setTaggingFileId] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const handleRetrigger = (fileId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFiles(prev => prev.map(f => f.id === fileId ? { ...f, status: 'pending' as const } : f));
+    toast.success('OCR extraction retriggered');
+    setTimeout(() => {
+      setFiles(prev => prev.map(f => f.id === fileId ? { ...f, status: 'processed' as const } : f));
+      toast.success('Processing complete');
+    }, 2000);
+  };
 
   const entities = companies.filter(c => c.parentId !== null);
 
