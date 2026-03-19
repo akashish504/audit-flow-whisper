@@ -18,6 +18,7 @@ export interface Company {
   contactEmail: string;
   contactName: string;
   hasAuditReport: boolean;
+  isArchived?: boolean;
 }
 
 export interface ReconciliationField {

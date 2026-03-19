@@ -12,6 +12,8 @@ interface AppState {
   addAuditPeriod: (companyId: string, period: AuditPeriod) => void;
   setActiveAuditPeriod: (companyId: string, periodId: string) => void;
   bulkCreateReviewCycles: (rows: { companyId: string; periodLabel: string }[]) => void;
+  archiveCompany: (companyId: string) => void;
+  unarchiveCompany: (companyId: string) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -94,11 +96,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const archiveCompany = (companyId: string) => {
+    setCompanies(prev => prev.map(c => c.id === companyId ? { ...c, isArchived: true } : c));
+  };
+
+  const unarchiveCompany = (companyId: string) => {
+    setCompanies(prev => prev.map(c => c.id === companyId ? { ...c, isArchived: false } : c));
+  };
+
   return (
     <AppContext.Provider value={{
       companies, emails, selectedCompanyId, setSelectedCompanyId,
       addEmail, attachReport, updateCompanyStatus,
       addAuditPeriod, setActiveAuditPeriod, bulkCreateReviewCycles,
+      archiveCompany, unarchiveCompany,
     }}>
       {children}
     </AppContext.Provider>
