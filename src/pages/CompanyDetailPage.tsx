@@ -8,6 +8,7 @@ import { CompanyDiscrepancies } from '@/components/company/CompanyDiscrepancies'
 import { CompanyEmailThreads } from '@/components/company/CompanyEmailThreads';
 import { CompanyEmailDraft } from '@/components/company/CompanyEmailDraft';
 import { CompanyAuditLogs } from '@/components/company/CompanyAuditLogs';
+import { CompanyAuditPeriods } from '@/components/company/CompanyAuditPeriods';
 
 const statusColor: Record<string, string> = {
   'Pending Review': 'bg-warning/20 text-warning border-warning/30',
@@ -79,6 +80,9 @@ export default function CompanyDetailPage() {
             <TabsTrigger value="audit-logs" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-xs">
               Audit Logs
             </TabsTrigger>
+            <TabsTrigger value="review-periods" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-xs">
+              Review Periods
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -92,14 +96,17 @@ export default function CompanyDetailPage() {
           <TabsContent value="discrepancies" className="h-full mt-0">
             <CompanyDiscrepancies companyId={company.id} />
           </TabsContent>
-          <TabsContent value="email-threads" className="h-full mt-0">
-            <CompanyEmailThreads companyId={company.id} />
-          </TabsContent>
           <TabsContent value="email-draft" className="h-full mt-0">
             <CompanyEmailDraft companyId={company.id} />
           </TabsContent>
+          <TabsContent value="email-threads" className="h-full mt-0">
+            <CompanyEmailThreads companyId={company.id} />
+          </TabsContent>
           <TabsContent value="audit-logs" className="h-full mt-0">
             <CompanyAuditLogs companyId={company.id} />
+          </TabsContent>
+          <TabsContent value="review-periods" className="h-full mt-0">
+            <CompanyAuditPeriods companyId={company.id} />
           </TabsContent>
         </div>
       </Tabs>
