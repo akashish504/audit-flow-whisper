@@ -8,6 +8,7 @@ import PortfolioCompaniesPage from "@/pages/PortfolioCompaniesPage";
 import CompanyDetailPage from "@/pages/CompanyDetailPage";
 import EmailTemplatesPage from "@/pages/EmailTemplatesPage";
 import FileTaggingPage from "@/pages/FileTaggingPage";
+import FileDetailPage from "@/pages/FileDetailPage";
 import EmailTaggingPage from "@/pages/EmailTaggingPage";
 import NotFound from "./pages/NotFound.tsx";
 
