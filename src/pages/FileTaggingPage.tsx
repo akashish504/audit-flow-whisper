@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { taggedFiles as initialFiles, TaggedFile, companies } from '@/data/mockData';
-import { FileText, Upload, Tag, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { FileText, Upload, Tag, CheckCircle2, Clock, AlertTriangle, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 const statusConfig: Record<string, { icon: React.ElementType; color: string }> = {
   processed: { icon: CheckCircle2, color: 'text-success' },
