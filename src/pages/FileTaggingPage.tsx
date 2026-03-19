@@ -73,7 +73,8 @@ export default function FileTaggingPage() {
               <th className="data-header text-left px-4 py-3">Size</th>
               <th className="data-header text-left px-4 py-3">Status</th>
               <th className="data-header text-left px-4 py-3">Tagged Entity</th>
-              <th className="data-header text-center px-4 py-3 w-24">Action</th>
+              <th className="data-header text-center px-4 py-3 w-20">Tag</th>
+              <th className="data-header text-center px-4 py-3 w-20">Retrigger</th>
             </tr>
           </thead>
           <tbody>
