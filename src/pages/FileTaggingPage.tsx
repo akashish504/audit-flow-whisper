@@ -83,7 +83,11 @@ export default function FileTaggingPage() {
               const statusColorClass = statusConfig[file.status]?.color || 'text-muted-foreground';
 
               return (
-                <tr key={file.id} className="border-t border-border hover:bg-accent/50 transition-quart">
+                <tr
+                  key={file.id}
+                  className={`border-t border-border hover:bg-accent/50 transition-quart ${file.status === 'processed' ? 'cursor-pointer' : ''}`}
+                  onClick={() => file.status === 'processed' && navigate(`/file-tagging/${file.id}`)}
+                >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-destructive/70 shrink-0" />
