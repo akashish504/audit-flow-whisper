@@ -124,10 +124,19 @@ export default function FileTaggingPage() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button
-                      onClick={() => setTaggingFileId(file.id)}
+                      onClick={(e) => { e.stopPropagation(); setTaggingFileId(file.id); }}
                       className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-quart press-effect mx-auto"
                     >
                       <Tag className="h-3 w-3" /> {file.taggedEntityId ? 'Retag' : 'Tag'}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={(e) => handleRetrigger(file.id, e)}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-quart press-effect mx-auto"
+                      title="Retrigger OCR extraction"
+                    >
+                      <RotateCcw className="h-3 w-3" />
                     </button>
                   </td>
                 </tr>

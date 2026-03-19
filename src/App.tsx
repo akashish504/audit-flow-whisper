@@ -26,6 +26,7 @@ const App = () => (
               <Route path="/company/:companyId" element={<CompanyDetailPage />} />
               <Route path="/email-templates" element={<EmailTemplatesPage />} />
               <Route path="/file-tagging" element={<FileTaggingPage />} />
+              <Route path="/file-tagging/:fileId" element={<FileDetailPage />} />
               <Route path="/email-tagging" element={<EmailTaggingPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
