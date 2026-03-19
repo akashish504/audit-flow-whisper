@@ -1,16 +1,81 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAppState } from '@/context/AppContext';
-import { Company } from '@/data/mockData';
-import { Paperclip, CheckCircle2, Building2 } from 'lucide-react';
+import { Company, taggedFiles } from '@/data/mockData';
+import { Paperclip, CheckCircle2, Building2, Search, FileText, X } from 'lucide-react';
 import { toast } from 'sonner';
+
+function FilePickerPopover({ companyId, companyName, onClose }: { companyId: string; companyName: string; onClose: () => void }) {
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  const filtered = taggedFiles.filter(f =>
+    f.fileName.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleAttach = (fileName: string) => {
+    toast.success(`"${fileName}" attached to ${companyName}`);
+    onClose();
+  };
+
+  return (
+    <div ref={ref} className="absolute top-full left-0 z-50 mt-1 w-72 bg-popover border border-border rounded-lg shadow-lg p-2">
+      <div className="flex items-center gap-2 mb-2">
+        <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <input
+          autoFocus
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search files..."
+          className="w-full text-xs bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
+        />
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="border-t border-border pt-1 max-h-48 overflow-auto">
+        {filtered.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-3 text-center">No files found</p>
+        ) : (
+          filtered.map(f => (
+            <button
+              key={f.id}
+              onClick={() => handleAttach(f.fileName)}
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-left hover:bg-accent transition-quart"
+            >
+              <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-foreground truncate">{f.fileName}</p>
+                <p className="text-[10px] text-muted-foreground">{f.size} · {f.status}</p>
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
 
 function OrgNodeCard({ company }: { company: Company }) {
   const { attachReport } = useAppState();
+  const [showFilePicker, setShowFilePicker] = useState(false);
 
   const handleAttach = (e: React.MouseEvent) => {
     e.stopPropagation();
     attachReport(company.id);
     toast.success(`Audit report attached to ${company.name}`);
+  };
+
+  const handleAttachFile = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowFilePicker(prev => !prev);
   };
 
   const statusColor = {
@@ -33,21 +98,34 @@ function OrgNodeCard({ company }: { company: Company }) {
           </span>
         </div>
         <div className="text-xs text-muted-foreground mb-2">{company.auditPeriod}</div>
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-between gap-1">
+          <button
+            onClick={handleAttachFile}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary press-effect px-2 py-1 rounded-sm border border-border opacity-0 group-hover:opacity-100 transition-quart"
+          >
+            <FileText className="h-3 w-3" /> Attach File
+          </button>
           {company.hasAuditReport ? (
             <span className="flex items-center gap-1 text-xs text-success">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Attached
+              <CheckCircle2 className="h-3.5 w-3.5" /> Report
             </span>
           ) : (
             <button
               onClick={handleAttach}
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary press-effect px-2 py-1 rounded-sm border border-border opacity-0 group-hover:opacity-100 transition-quart"
             >
-              <Paperclip className="h-3 w-3" /> Attach
+              <Paperclip className="h-3 w-3" /> Report
             </button>
           )}
         </div>
       </div>
+      {showFilePicker && (
+        <FilePickerPopover
+          companyId={company.id}
+          companyName={company.name}
+          onClose={() => setShowFilePicker(false)}
+        />
+      )}
     </div>
   );
 }
@@ -58,14 +136,12 @@ function TreeBranch({ parentId, companies }: { parentId: string; companies: Comp
 
   return (
     <div className="flex flex-col items-center">
-      {/* Vertical line down from parent */}
-      <div className="w-px h-6 bg-border" />
+      <div className="w-px h-6 bg-muted-foreground/40" />
 
-      {/* Horizontal connector bar */}
       {children.length > 1 && (
         <div className="relative flex items-start">
           <div
-            className="absolute top-0 bg-border"
+            className="absolute top-0 bg-muted-foreground/40"
             style={{
               height: '1px',
               left: `calc(100% / ${children.length * 2})`,
@@ -75,12 +151,10 @@ function TreeBranch({ parentId, companies }: { parentId: string; companies: Comp
         </div>
       )}
 
-      {/* Children row */}
       <div className="flex items-start gap-4">
-        {children.map((child, i) => (
+        {children.map((child) => (
           <div key={child.id} className="flex flex-col items-center">
-            {/* Vertical line down to child if multiple siblings */}
-            {children.length > 1 && <div className="w-px h-4 bg-border" />}
+            {children.length > 1 && <div className="w-px h-4 bg-muted-foreground/40" />}
             <OrgNodeCard company={child} />
             <TreeBranch parentId={child.id} companies={companies} />
           </div>

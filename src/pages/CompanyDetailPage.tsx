@@ -70,11 +70,11 @@ export default function CompanyDetailPage() {
             <TabsTrigger value="discrepancies" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-xs">
               Discrepancy Dashboard
             </TabsTrigger>
-            <TabsTrigger value="email-threads" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-xs">
-              Email Threads
-            </TabsTrigger>
             <TabsTrigger value="email-draft" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-xs">
               Email Draft & Sending
+            </TabsTrigger>
+            <TabsTrigger value="email-threads" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-xs">
+              Email Threads
             </TabsTrigger>
             <TabsTrigger value="audit-logs" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-xs">
               Audit Logs
