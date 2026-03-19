@@ -59,9 +59,9 @@ export default function FileTaggingPage() {
           <h1 className="text-lg font-semibold tracking-tight text-foreground">File Tagging</h1>
           <p className="text-xs text-muted-foreground">Manage and tag PDF files to portfolio entities</p>
         </div>
-        <button onClick={handleUpload} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md press-effect hover:opacity-90 transition-quart">
+        <Button onClick={handleUpload} size="sm">
           <Upload className="h-3.5 w-3.5" /> Upload File
-        </button>
+        </Button>
       </div>
 
       <div className="bg-card border border-border rounded-lg overflow-hidden">
