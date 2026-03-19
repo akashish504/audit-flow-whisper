@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { taggedFiles as initialFiles, TaggedFile, companies } from '@/data/mockData';
-import { FileText, Upload, Tag, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { FileText, Upload, Tag, CheckCircle2, Clock, AlertTriangle, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 const statusConfig: Record<string, { icon: React.ElementType; color: string }> = {
   processed: { icon: CheckCircle2, color: 'text-success' },
@@ -12,6 +14,17 @@ const statusConfig: Record<string, { icon: React.ElementType; color: string }> =
 export default function FileTaggingPage() {
   const [files, setFiles] = useState<TaggedFile[]>(initialFiles);
   const [taggingFileId, setTaggingFileId] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const handleRetrigger = (fileId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFiles(prev => prev.map(f => f.id === fileId ? { ...f, status: 'pending' as const } : f));
+    toast.success('OCR extraction retriggered');
+    setTimeout(() => {
+      setFiles(prev => prev.map(f => f.id === fileId ? { ...f, status: 'processed' as const } : f));
+      toast.success('Processing complete');
+    }, 2000);
+  };
 
   const entities = companies.filter(c => c.parentId !== null);
 
@@ -46,9 +59,9 @@ export default function FileTaggingPage() {
           <h1 className="text-lg font-semibold tracking-tight text-foreground">File Tagging</h1>
           <p className="text-xs text-muted-foreground">Manage and tag PDF files to portfolio entities</p>
         </div>
-        <button onClick={handleUpload} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md press-effect hover:opacity-90 transition-quart">
+        <Button onClick={handleUpload} size="sm">
           <Upload className="h-3.5 w-3.5" /> Upload File
-        </button>
+        </Button>
       </div>
 
       <div className="bg-card border border-border rounded-lg overflow-hidden">
@@ -60,7 +73,8 @@ export default function FileTaggingPage() {
               <th className="data-header text-left px-4 py-3">Size</th>
               <th className="data-header text-left px-4 py-3">Status</th>
               <th className="data-header text-left px-4 py-3">Tagged Entity</th>
-              <th className="data-header text-center px-4 py-3 w-24">Action</th>
+              <th className="data-header text-center px-4 py-3 w-20">Tag</th>
+              <th className="data-header text-center px-4 py-3 w-20">Retrigger</th>
             </tr>
           </thead>
           <tbody>
@@ -69,7 +83,11 @@ export default function FileTaggingPage() {
               const statusColorClass = statusConfig[file.status]?.color || 'text-muted-foreground';
 
               return (
-                <tr key={file.id} className="border-t border-border hover:bg-accent/50 transition-quart">
+                <tr
+                  key={file.id}
+                  className={`border-t border-border hover:bg-accent/50 transition-quart ${file.status === 'processed' ? 'cursor-pointer' : ''}`}
+                  onClick={() => file.status === 'processed' && navigate(`/file-tagging/${file.id}`)}
+                >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-destructive/70 shrink-0" />
@@ -106,10 +124,19 @@ export default function FileTaggingPage() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button
-                      onClick={() => setTaggingFileId(file.id)}
+                      onClick={(e) => { e.stopPropagation(); setTaggingFileId(file.id); }}
                       className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-quart press-effect mx-auto"
                     >
                       <Tag className="h-3 w-3" /> {file.taggedEntityId ? 'Retag' : 'Tag'}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={(e) => handleRetrigger(file.id, e)}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-quart press-effect mx-auto"
+                      title="Retrigger OCR extraction"
+                    >
+                      <RotateCcw className="h-3 w-3" />
                     </button>
                   </td>
                 </tr>

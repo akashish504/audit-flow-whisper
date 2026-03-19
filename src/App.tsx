@@ -8,6 +8,7 @@ import PortfolioCompaniesPage from "@/pages/PortfolioCompaniesPage";
 import CompanyDetailPage from "@/pages/CompanyDetailPage";
 import EmailTemplatesPage from "@/pages/EmailTemplatesPage";
 import FileTaggingPage from "@/pages/FileTaggingPage";
+import FileDetailPage from "@/pages/FileDetailPage";
 import EmailTaggingPage from "@/pages/EmailTaggingPage";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -25,6 +26,7 @@ const App = () => (
               <Route path="/company/:companyId" element={<CompanyDetailPage />} />
               <Route path="/email-templates" element={<EmailTemplatesPage />} />
               <Route path="/file-tagging" element={<FileTaggingPage />} />
+              <Route path="/file-tagging/:fileId" element={<FileDetailPage />} />
               <Route path="/email-tagging" element={<EmailTaggingPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
