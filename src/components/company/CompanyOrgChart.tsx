@@ -59,7 +59,7 @@ function TreeBranch({ parentId, companies }: { parentId: string; companies: Comp
       <div className="flex items-start gap-4">
         {children.map((child) => (
           <div key={child.id} className="flex flex-col items-center">
-            {children.length > 1 && <div className="w-px h-4 bg-border" />}
+            {children.length > 1 && <div className="w-px h-4 bg-muted-foreground/40" />}
             <OrgNodeCard company={child} />
             <TreeBranch parentId={child.id} companies={companies} />
           </div>
