@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import { Building2, ChevronRight, Search, X, Upload } from 'lucide-react';
+import { Building2, ChevronRight, Search, X, Upload, Download, Archive, ArchiveRestore } from 'lucide-react';
 import { AuditStatus } from '@/data/mockData';
 import { toast } from '@/components/ui/sonner';
 
@@ -15,24 +15,59 @@ const statusColor: Record<string, string> = {
 const allStatuses: AuditStatus[] = ['Pending Review', 'Discrepancy Identified', 'Clarification Requested', 'Resolved'];
 const allPeriods = ['Q4 2024', 'Q3 2024', 'Q2 2024', 'Q1 2024', 'Q1 2025'];
 
+function StatusStats({ entities }: { entities: { status: AuditStatus }[] }) {
+  const counts = allStatuses.map(s => ({
+    status: s,
+    count: entities.filter(c => c.status === s).length,
+  }));
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      {counts.map(({ status, count }) => (
+        <div key={status} className={`rounded-lg border px-4 py-3 ${statusColor[status]}`}>
+          <div className="text-lg font-bold">{count}</div>
+          <div className="text-[11px] font-medium">{status}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function downloadSampleCsv() {
+  const csv = 'company_id,period\nacme,Q1 2025\nmeridian,Q1 2025\nnexus,Q1 2025';
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'review_cycle_sample.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function PortfolioCompaniesPage() {
-  const { companies, bulkCreateReviewCycles } = useAppState();
+  const { companies, bulkCreateReviewCycles, archiveCompany, unarchiveCompany } = useAppState();
   const navigate = useNavigate();
-  const entities = companies.filter(c => c.parentId !== null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<AuditStatus | ''>('');
   const [periodFilter, setPeriodFilter] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+
+  const entities = companies.filter(c => c.parentId !== null);
+  const activeEntities = entities.filter(c => !c.isArchived);
+  const archivedEntities = entities.filter(c => c.isArchived);
+
+  const displayEntities = showArchived ? archivedEntities : activeEntities;
 
   const filtered = useMemo(() => {
-    return entities.filter(c => {
+    return displayEntities.filter(c => {
       if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (statusFilter && c.status !== statusFilter) return false;
       if (periodFilter && c.auditPeriod !== periodFilter) return false;
       return true;
     });
-  }, [entities, search, statusFilter, periodFilter]);
+  }, [displayEntities, search, statusFilter, periodFilter]);
 
   const hasFilters = search || statusFilter || periodFilter;
 
@@ -85,8 +120,19 @@ export default function PortfolioCompaniesPage() {
       toast.success(`Created ${validRows.length} review cycle(s)${skipped > 0 ? `, ${skipped} skipped (unknown company)` : ''}`);
     };
     reader.readAsText(file);
-    // Reset input so same file can be re-uploaded
     e.target.value = '';
+  };
+
+  const handleArchive = (e: React.MouseEvent, companyId: string, name: string) => {
+    e.stopPropagation();
+    archiveCompany(companyId);
+    toast.success(`${name} archived`);
+  };
+
+  const handleUnarchive = (e: React.MouseEvent, companyId: string, name: string) => {
+    e.stopPropagation();
+    unarchiveCompany(companyId);
+    toast.success(`${name} restored`);
   };
 
   return (
@@ -94,24 +140,32 @@ export default function PortfolioCompaniesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-lg font-semibold tracking-tight text-foreground">Portfolio Companies</h1>
-          <p className="text-xs text-muted-foreground">{filtered.length} of {entities.length} entities</p>
+          <p className="text-xs text-muted-foreground">{filtered.length} of {displayEntities.length} entities</p>
         </div>
-        <div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv"
-            onChange={handleCsvUpload}
-            className="hidden"
-          />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className={`flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-md border transition-colors ${showArchived ? 'bg-accent text-foreground border-border' : 'text-muted-foreground border-border hover:text-foreground'}`}
+          >
+            <Archive className="h-3.5 w-3.5" /> {showArchived ? `Archived (${archivedEntities.length})` : 'View Archived'}
+          </button>
+          <button
+            onClick={downloadSampleCsv}
+            className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium text-muted-foreground border border-border rounded-md hover:text-foreground transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" /> Sample CSV
+          </button>
+          <input ref={fileInputRef} type="file" accept=".csv" onChange={handleCsvUpload} className="hidden" />
           <button
             onClick={() => fileInputRef.current?.click()}
             className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
           >
-            <Upload className="h-3.5 w-3.5" /> Upload CSV Review Cycle
+            <Upload className="h-3.5 w-3.5" /> Upload CSV
           </button>
         </div>
       </div>
+
+      {!showArchived && <StatusStats entities={activeEntities} />}
 
       {/* Filters bar */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
@@ -153,11 +207,6 @@ export default function PortfolioCompaniesPage() {
         )}
       </div>
 
-      {/* CSV format hint */}
-      <div className="mb-4 px-3 py-2 rounded-md bg-muted/50 border border-border text-[11px] text-muted-foreground">
-        <strong>CSV format:</strong> <code className="text-foreground">company_id,period</code> — e.g. <code className="text-foreground">acme,Q1 2025</code>
-      </div>
-
       <div className="bg-card border border-border rounded-lg overflow-hidden">
         <table className="w-full">
           <thead>
@@ -166,15 +215,16 @@ export default function PortfolioCompaniesPage() {
               <th className="data-header text-left px-4 py-3">Parent</th>
               <th className="data-header text-left px-4 py-3">Status</th>
               <th className="data-header text-left px-4 py-3">Active Period</th>
-              <th className="data-header text-left px-4 py-3">Periods</th>
               <th className="data-header text-left px-4 py-3">Contact</th>
-              <th className="data-header text-center px-4 py-3 w-10"></th>
+              <th className="data-header text-center px-4 py-3 w-20"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">No companies match the current filters</td>
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  {showArchived ? 'No archived companies' : 'No companies match the current filters'}
+                </td>
               </tr>
             ) : (
               filtered.map(company => {
@@ -198,10 +248,28 @@ export default function PortfolioCompaniesPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground font-mono">{company.auditPeriod}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{company.auditPeriods.length}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{company.contactName || '—'}</td>
                     <td className="px-4 py-3 text-center">
-                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-quart" />
+                      <div className="flex items-center justify-end gap-1">
+                        {showArchived ? (
+                          <button
+                            onClick={(e) => handleUnarchive(e, company.id, company.name)}
+                            className="p-1.5 rounded-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                            title="Restore"
+                          >
+                            <ArchiveRestore className="h-3.5 w-3.5" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => handleArchive(e, company.id, company.name)}
+                            className="p-1.5 rounded-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
+                            title="Archive"
+                          >
+                            <Archive className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-quart" />
+                      </div>
                     </td>
                   </tr>
                 );

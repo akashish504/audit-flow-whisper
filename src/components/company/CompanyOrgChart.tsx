@@ -33,7 +33,7 @@ function FilePickerPopover({ companyId, companyName, onClose }: { companyId: str
   };
 
   return (
-    <div ref={ref} className="absolute top-full left-0 z-50 mt-1 w-72 bg-popover border border-border rounded-lg shadow-lg p-2">
+    <div ref={ref} className="absolute top-0 left-full z-50 ml-2 w-72 bg-popover border border-border rounded-lg shadow-lg p-2">
       <div className="flex items-center gap-2 mb-2">
         <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <input
@@ -133,12 +133,12 @@ function TreeBranch({ parentId, companies }: { parentId: string; companies: Comp
   if (children.length === 0) return null;
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="w-px h-6 bg-muted-foreground/40" />
-      <div className="flex items-start gap-4">
+    <div className="flex items-center">
+      <div className="w-8 h-px bg-foreground/60" />
+      <div className="flex flex-col gap-3">
         {children.map((child) => (
-          <div key={child.id} className="flex flex-col items-center">
-            {children.length > 1 && <div className="w-px h-4 bg-muted-foreground/40" />}
+          <div key={child.id} className="flex items-center">
+            {children.length > 1 && <div className="w-6 h-px bg-foreground/60" />}
             <OrgNodeCard company={child} />
             <TreeBranch parentId={child.id} companies={companies} />
           </div>
@@ -162,7 +162,7 @@ export function CompanyOrgChart({ companyId }: { companyId: string }) {
 
   return (
     <div className="p-6 overflow-auto h-full">
-      <div className="inline-flex flex-col items-center min-w-full">
+      <div className="inline-flex items-start min-w-full">
         <OrgNodeCard company={root} />
         <TreeBranch parentId={root.id} companies={companies} />
       </div>
