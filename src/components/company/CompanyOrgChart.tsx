@@ -55,7 +55,7 @@ function TreeBranch({ parentId, companies }: { parentId: string; companies: Comp
 
   return (
     <div className="flex flex-col items-center">
-      <div className="w-px h-6 bg-border" />
+      <div className="w-px h-6 bg-muted-foreground/40" />
       <div className="flex items-start gap-4">
         {children.map((child) => (
           <div key={child.id} className="flex flex-col items-center">
