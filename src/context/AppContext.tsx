@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, type ReactNode } from 'react';
 import { Company, AuditPeriod, companies as initialCompanies, EmailThread, emailThreads as initialEmails } from '@/data/mockData';
 
 interface AppState {
