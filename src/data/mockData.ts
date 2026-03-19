@@ -1,11 +1,20 @@
 export type AuditStatus = 'Pending Review' | 'Discrepancy Identified' | 'Clarification Requested' | 'Resolved';
 
+export interface AuditPeriod {
+  id: string;
+  label: string;
+  status: AuditStatus;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface Company {
   id: string;
   name: string;
   parentId: string | null;
   status: AuditStatus;
   auditPeriod: string;
+  auditPeriods: AuditPeriod[];
   contactEmail: string;
   contactName: string;
   hasAuditReport: boolean;
