@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppState } from '@/context/AppContext';
-import { ArrowLeft, Building2, ChevronDown, FileText } from 'lucide-react';
+import { ArrowLeft, Building2, ChevronDown } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CompanyOrgChart } from '@/components/company/CompanyOrgChart';
 import { CompanyFinancials } from '@/components/company/CompanyFinancials';
