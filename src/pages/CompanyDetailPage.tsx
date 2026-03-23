@@ -9,6 +9,7 @@ import { CompanyDiscrepancies } from '@/components/company/CompanyDiscrepancies'
 import { CompanyEmailThreads } from '@/components/company/CompanyEmailThreads';
 import { CompanyEmailDraft } from '@/components/company/CompanyEmailDraft';
 import { CompanyAuditLogs } from '@/components/company/CompanyAuditLogs';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { entityFiles } from '@/data/mockData';
 import type { AuditStatus } from '@/data/mockData';
 import { toast } from 'sonner';
@@ -28,6 +29,7 @@ export default function CompanyDetailPage() {
   const navigate = useNavigate();
   const [statusOpen, setStatusOpen] = useState(false);
   const [selectedFileId, setSelectedFileId] = useState<string>('all');
+  const [pendingStatus, setPendingStatus] = useState<AuditStatus | null>(null);
 
   const company = companies.find(c => c.id === companyId);
   if (!company) {
@@ -38,19 +40,23 @@ export default function CompanyDetailPage() {
     );
   }
 
-  // Get all related entities (children + self)
   const relatedIds = [company.id, ...companies.filter(c => c.parentId === company.id).map(c => c.id)];
 
-  // Get files for this company and current review period
   const companyFiles = entityFiles.filter(f =>
     (f.companyId === companyId || relatedIds.includes(f.entityId)) &&
     f.reviewPeriod === company.auditPeriod
   );
 
-  const handleStatusChange = (status: AuditStatus) => {
-    updateCompanyStatus(company.id, status);
+  const handleStatusClick = (status: AuditStatus) => {
+    setPendingStatus(status);
     setStatusOpen(false);
-    toast.success(`Status updated to "${status}"`);
+  };
+
+  const confirmStatusChange = () => {
+    if (!pendingStatus) return;
+    updateCompanyStatus(company.id, pendingStatus);
+    toast.success(`Status updated to "${pendingStatus}"`);
+    setPendingStatus(null);
   };
 
   const handlePeriodChange = (periodId: string) => {
@@ -75,7 +81,6 @@ export default function CompanyDetailPage() {
             <div>
               <h1 className="text-lg font-bold text-gray-900">{company.name}</h1>
               <div className="flex items-center gap-3 mt-1">
-                {/* Company-level status dropdown */}
                 <div className="relative">
                   <button
                     onClick={() => setStatusOpen(!statusOpen)}
@@ -89,7 +94,7 @@ export default function CompanyDetailPage() {
                       {allStatuses.map(s => (
                         <button
                           key={s}
-                          onClick={() => handleStatusChange(s)}
+                          onClick={() => handleStatusClick(s)}
                           className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 ${s === company.status ? 'font-semibold' : ''}`}
                         >
                           <span className={`w-2 h-2 rounded-full ${statusBadge[s]?.split(' ')[0]?.replace('100', '400') || 'bg-gray-400'}`} />
@@ -106,9 +111,7 @@ export default function CompanyDetailPage() {
             </div>
           </div>
 
-          {/* Review Period Dropdown + Entity File Dropdown */}
           <div className="flex items-center gap-3">
-            {/* Review Period Selector */}
             <div className="flex flex-col items-end gap-1">
               <label className="text-[10px] text-gray-400 uppercase tracking-wider">Review Period</label>
               <select
@@ -122,7 +125,6 @@ export default function CompanyDetailPage() {
               </select>
             </div>
 
-            {/* Entity File Selector */}
             {companyFiles.length > 0 && (
               <div className="flex flex-col items-end gap-1">
                 <label className="text-[10px] text-gray-400 uppercase tracking-wider">Entity File</label>
@@ -141,6 +143,22 @@ export default function CompanyDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Status confirmation dialog */}
+      <AlertDialog open={!!pendingStatus} onOpenChange={(open) => { if (!open) setPendingStatus(null); }}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-gray-900">Confirm Status Change</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-500">
+              Change <span className="font-medium text-gray-700">{company.name}</span> status from <span className="font-medium text-gray-700">{company.status}</span> to <span className="font-medium text-gray-700">{pendingStatus}</span>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-gray-300 text-gray-700 hover:bg-gray-50">No</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmStatusChange} className="bg-blue-500 text-white hover:bg-blue-600">Yes</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Tabs */}
       <Tabs defaultValue="org-chart" className="flex-1 flex flex-col overflow-hidden">

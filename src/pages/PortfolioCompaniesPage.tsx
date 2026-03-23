@@ -1,9 +1,10 @@
 import { useState, useMemo, useRef } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import { Building2, ChevronRight, Search, X, Upload, Download, Archive, ArchiveRestore } from 'lucide-react';
+import { Building2, ChevronRight, Search, X, Upload, Download, Archive, ArchiveRestore, ChevronDown } from 'lucide-react';
 import { AuditStatus } from '@/data/mockData';
 import { toast } from '@/components/ui/sonner';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const statusBadge: Record<string, string> = {
   'Pending Review': 'bg-yellow-100 text-yellow-800',
@@ -54,8 +55,38 @@ function downloadSampleCsv() {
   URL.revokeObjectURL(url);
 }
 
+function StatusDropdown({ company, onStatusChange }: { company: { id: string; name: string; status: AuditStatus }; onStatusChange: (id: string, name: string, currentStatus: AuditStatus, newStatus: AuditStatus) => void }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative" onClick={e => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer ${statusBadge[company.status] || 'bg-gray-100 text-gray-800'}`}
+      >
+        {company.status}
+        <ChevronDown className="h-3 w-3" />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[200px]">
+          {allStatuses.map(s => (
+            <button
+              key={s}
+              onClick={() => { onStatusChange(company.id, company.name, company.status, s); setOpen(false); }}
+              className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 ${s === company.status ? 'font-semibold' : ''}`}
+            >
+              <span className={`w-2 h-2 rounded-full ${statusDot[s] || 'bg-gray-400'}`} />
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PortfolioCompaniesPage() {
-  const { companies, bulkCreateReviewCycles, archiveCompany, unarchiveCompany } = useAppState();
+  const { companies, bulkCreateReviewCycles, archiveCompany, unarchiveCompany, updateCompanyStatus } = useAppState();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,6 +94,7 @@ export default function PortfolioCompaniesPage() {
   const [statusFilter, setStatusFilter] = useState<AuditStatus | ''>('');
   const [periodFilter, setPeriodFilter] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<{ id: string; name: string; from: AuditStatus; to: AuditStatus } | null>(null);
 
   const entities = companies.filter(c => c.parentId !== null);
   const activeEntities = entities.filter(c => !c.isArchived);
@@ -80,6 +112,17 @@ export default function PortfolioCompaniesPage() {
   }, [displayEntities, search, statusFilter, periodFilter]);
 
   const hasFilters = search || statusFilter || periodFilter;
+
+  const handleStatusChange = (id: string, name: string, currentStatus: AuditStatus, newStatus: AuditStatus) => {
+    setPendingStatus({ id, name, from: currentStatus, to: newStatus });
+  };
+
+  const confirmStatusChange = () => {
+    if (!pendingStatus) return;
+    updateCompanyStatus(pendingStatus.id, pendingStatus.to);
+    toast.success(`${pendingStatus.name} status updated to "${pendingStatus.to}"`);
+    setPendingStatus(null);
+  };
 
   const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -176,7 +219,6 @@ export default function PortfolioCompaniesPage() {
         </div>
       </div>
 
-      {/* Stats cards */}
       {!showArchived && <StatusStats entities={activeEntities} />}
 
       {/* Filters bar */}
@@ -256,9 +298,7 @@ export default function PortfolioCompaniesPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">{parent?.name || '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge[company.status] || 'bg-gray-100 text-gray-800'}`}>
-                        {company.status}
-                      </span>
+                      <StatusDropdown company={company} onStatusChange={handleStatusChange} />
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500 font-mono">{company.auditPeriod}</td>
                     <td className="px-4 py-3 text-sm text-gray-500">{company.contactName || '—'}</td>
@@ -291,6 +331,22 @@ export default function PortfolioCompaniesPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Status change confirmation */}
+      <AlertDialog open={!!pendingStatus} onOpenChange={(open) => { if (!open) setPendingStatus(null); }}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-gray-900">Confirm Status Change</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-500">
+              Change <span className="font-medium text-gray-700">{pendingStatus?.name}</span> status from <span className="font-medium text-gray-700">{pendingStatus?.from}</span> to <span className="font-medium text-gray-700">{pendingStatus?.to}</span>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-gray-300 text-gray-700 hover:bg-gray-50">No</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmStatusChange} className="bg-blue-500 text-white hover:bg-blue-600">Yes</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

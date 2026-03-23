@@ -3,6 +3,7 @@ import { useAppState } from '@/context/AppContext';
 import { Company, taggedFiles, AuditStatus } from '@/data/mockData';
 import { Building2, CheckCircle2, Paperclip, Search, FileText, X, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const statusBadge: Record<string, string> = {
   'Pending Review': 'bg-yellow-100 text-yellow-800',
@@ -68,6 +69,7 @@ function OrgNodeCard({ company, isHighlighted }: { company: Company; isHighlight
   const { attachReport, updateEntityStatus } = useAppState();
   const [showFilePicker, setShowFilePicker] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<AuditStatus | null>(null);
 
   const handleAttachReport = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -80,10 +82,12 @@ function OrgNodeCard({ company, isHighlighted }: { company: Company; isHighlight
     setShowFilePicker(prev => !prev);
   };
 
-  const handleEntityStatusChange = (status: AuditStatus) => {
-    updateEntityStatus(company.id, status);
+  const confirmEntityStatusChange = () => {
+    if (!pendingStatus) return;
+    updateEntityStatus(company.id, pendingStatus);
+    toast.success(`Entity status updated to "${pendingStatus}"`);
+    setPendingStatus(null);
     setShowStatusMenu(false);
-    toast.success(`Entity status updated to "${status}"`);
   };
 
   return (
@@ -106,7 +110,7 @@ function OrgNodeCard({ company, isHighlighted }: { company: Company; isHighlight
             {allStatuses.map(s => (
               <button
                 key={s}
-                onClick={(e) => { e.stopPropagation(); handleEntityStatusChange(s); }}
+                onClick={(e) => { e.stopPropagation(); setPendingStatus(s); setShowStatusMenu(false); }}
                 className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-2 ${s === (company.entityStatus || company.status) ? 'font-semibold' : ''}`}
               >
                 <span className={`w-2 h-2 rounded-full ${s === 'Pending Review' ? 'bg-yellow-400' : s === 'Discrepancy Identified' ? 'bg-red-400' : s === 'Clarification Requested' ? 'bg-blue-400' : 'bg-green-400'}`} />
@@ -144,6 +148,22 @@ function OrgNodeCard({ company, isHighlighted }: { company: Company; isHighlight
           onClose={() => setShowFilePicker(false)}
         />
       )}
+
+      {/* Confirmation dialog */}
+      <AlertDialog open={!!pendingStatus} onOpenChange={(open) => { if (!open) setPendingStatus(null); }}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-gray-900">Confirm Status Change</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-500">
+              Change <span className="font-medium text-gray-700">{company.name}</span> status from <span className="font-medium text-gray-700">{company.entityStatus || company.status}</span> to <span className="font-medium text-gray-700">{pendingStatus}</span>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-gray-300 text-gray-700 hover:bg-gray-50">No</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmEntityStatusChange} className="bg-blue-500 text-white hover:bg-blue-600">Yes</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -5,18 +5,19 @@ import type { DiscrepancyItem } from '@/data/mockData';
 import { AlertTriangle, Pencil, Building2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
 export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
   const { companies, discrepancies, updateDiscrepancy } = useAppState();
   const company = companies.find(c => c.id === companyId);
 
-  // Get all entity IDs related to this company (self + children)
   const relatedIds = [companyId, ...companies.filter(c => c.parentId === companyId).map(c => c.id)];
   const companyDiscrepancies = discrepancies.filter(d => relatedIds.includes(d.entityId));
 
   const [editingItem, setEditingItem] = useState<DiscrepancyItem | null>(null);
   const [editForm, setEditForm] = useState({ enabled: true, remarks: '', l1Reviewer: '', l2Reviewer: '' });
+  const [pendingToggle, setPendingToggle] = useState<{ id: string; newValue: boolean } | null>(null);
 
   const openEdit = (item: DiscrepancyItem) => {
     setEditForm({
@@ -33,6 +34,13 @@ export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
     updateDiscrepancy(editingItem.id, editForm);
     setEditingItem(null);
     toast.success('Discrepancy updated');
+  };
+
+  const confirmToggle = () => {
+    if (!pendingToggle) return;
+    updateDiscrepancy(pendingToggle.id, { enabled: pendingToggle.newValue });
+    toast.success(`Discrepancy ${pendingToggle.newValue ? 'enabled' : 'disabled'}`);
+    setPendingToggle(null);
   };
 
   if (companyDiscrepancies.length === 0) {
@@ -62,7 +70,6 @@ export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${item.enabled ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
                     {(v.percent * 100).toFixed(2)}%
                   </span>
-                  {/* Entity label */}
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
                     <Building2 className="h-3 w-3" />
                     {item.entityName}
@@ -76,18 +83,16 @@ export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
               </div>
 
               <div className="flex items-center gap-3 shrink-0 ml-4">
-                {/* Enable/Disable toggle */}
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-gray-400 uppercase">{item.enabled ? 'Enabled' : 'Disabled'}</span>
                   <Switch
                     checked={item.enabled}
-                    onCheckedChange={(checked) => updateDiscrepancy(item.id, { enabled: checked })}
+                    onCheckedChange={(checked) => setPendingToggle({ id: item.id, newValue: checked })}
                   />
                 </div>
-                {/* Edit button */}
                 <button
                   onClick={() => openEdit(item)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   <Pencil className="h-3 w-3" /> Edit
                 </button>
@@ -96,6 +101,22 @@ export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
           );
         })}
       </div>
+
+      {/* Toggle confirmation */}
+      <AlertDialog open={!!pendingToggle} onOpenChange={(open) => { if (!open) setPendingToggle(null); }}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-gray-900">Confirm Change</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-500">
+              Are you sure you want to {pendingToggle?.newValue ? 'enable' : 'disable'} this discrepancy?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-gray-300 text-gray-700 hover:bg-gray-50">No</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmToggle} className="bg-blue-500 text-white hover:bg-blue-600">Yes</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Edit Dialog */}
       <Dialog open={!!editingItem} onOpenChange={(open) => { if (!open) setEditingItem(null); }}>
