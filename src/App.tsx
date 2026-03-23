@@ -10,6 +10,7 @@ import EmailTemplatesPage from "@/pages/EmailTemplatesPage";
 import FileTaggingPage from "@/pages/FileTaggingPage";
 import FileDetailPage from "@/pages/FileDetailPage";
 import EmailTaggingPage from "@/pages/EmailTaggingPage";
+import ParameterThresholdPage from "@/pages/ParameterThresholdPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient({
