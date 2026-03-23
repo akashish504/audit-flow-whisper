@@ -25,21 +25,21 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border">
-      <SidebarContent>
-        <div className={`px-4 py-5 border-b border-border ${collapsed ? 'px-2' : ''}`}>
+    <Sidebar collapsible="icon" className="bg-white border-r border-gray-200">
+      <SidebarContent className="bg-white">
+        <div className={`px-4 py-5 border-b border-gray-200 ${collapsed ? 'px-2' : ''}`}>
           {!collapsed ? (
             <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              <span className="text-sm font-semibold tracking-tight text-foreground">Vantage Audit</span>
+              <FileText className="h-5 w-5 text-blue-500" />
+              <span className="text-sm font-semibold tracking-tight text-gray-900">Vantage Audit</span>
             </div>
           ) : (
-            <FileText className="h-5 w-5 text-primary mx-auto" />
+            <FileText className="h-5 w-5 text-blue-500 mx-auto" />
           )}
         </div>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="data-header px-4">Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs font-medium text-gray-500 uppercase tracking-wider px-4">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
@@ -48,8 +48,8 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end={item.url === '/'}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-quart"
-                      activeClassName="bg-sidebar-accent text-primary font-medium"
+                      className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                      activeClassName="bg-blue-100 text-blue-700"
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
                       {!collapsed && <span>{item.title}</span>}
