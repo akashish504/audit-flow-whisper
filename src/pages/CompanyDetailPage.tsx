@@ -60,13 +60,8 @@ export default function CompanyDetailPage() {
     f.reviewPeriod === company.auditPeriod
   );
 
-  // Group files by entity
-  const filesByEntity = companyFiles.reduce<Record<string, EntityFile[]>>((acc, f) => {
-    const key = f.entityId;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(f);
-    return acc;
-  }, {});
+
+
 
   const handleStatusClick = (status: AuditStatus) => {
     setPendingStatus(status);
