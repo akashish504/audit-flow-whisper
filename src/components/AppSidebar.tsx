@@ -1,4 +1,4 @@
-import { Building2, Mail, FileText, Tag } from 'lucide-react';
+import { Building2, Mail, FileText, Tag, SlidersHorizontal } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import {
@@ -18,6 +18,7 @@ const navItems = [
   { title: 'Email Templates', url: '/email-templates', icon: Mail },
   { title: 'File Tagging', url: '/file-tagging', icon: FileText },
   { title: 'Email Tagging', url: '/email-tagging', icon: Tag },
+  { title: 'Parameter Threshold', url: '/parameter-threshold', icon: SlidersHorizontal },
 ];
 
 export function AppSidebar() {
