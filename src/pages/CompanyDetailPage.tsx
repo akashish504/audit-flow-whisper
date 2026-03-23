@@ -159,26 +159,6 @@ export default function CompanyDetailPage() {
           </div>
         </div>
 
-        {/* Files grouped by entity */}
-        {Object.keys(filesByEntity).length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {Object.entries(filesByEntity).map(([entityId, files]) => (
-              <div key={entityId} className="flex items-center gap-1">
-                <span className="text-[10px] text-gray-400 uppercase tracking-wider mr-1">{files[0].entityName}:</span>
-                {files.map(f => (
-                  <button
-                    key={f.id}
-                    onClick={() => setPreviewFile(f)}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-200 transition-all"
-                  >
-                    <FileText className="h-3 w-3 text-red-400" />
-                    <span className="truncate max-w-[140px]">{f.fileName}</span>
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Status confirmation dialog */}
@@ -196,9 +176,6 @@ export default function CompanyDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* File preview overlay */}
-      <FilePreviewOverlay file={previewFile} open={!!previewFile} onClose={() => setPreviewFile(null)} />
 
       {/* Tabs */}
       <Tabs defaultValue="org-chart" className="flex-1 flex flex-col overflow-hidden">
