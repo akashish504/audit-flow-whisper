@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppState } from '@/context/AppContext';
-import { ArrowLeft, Building2, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Building2, ChevronDown, FileText } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CompanyOrgChart } from '@/components/company/CompanyOrgChart';
 import { CompanyFinancials } from '@/components/company/CompanyFinancials';
@@ -9,9 +9,10 @@ import { CompanyDiscrepancies } from '@/components/company/CompanyDiscrepancies'
 import { CompanyEmailThreads } from '@/components/company/CompanyEmailThreads';
 import { CompanyEmailDraft } from '@/components/company/CompanyEmailDraft';
 import { CompanyAuditLogs } from '@/components/company/CompanyAuditLogs';
+import { FilePreviewOverlay } from '@/components/company/FilePreviewOverlay';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { entityFiles } from '@/data/mockData';
-import type { AuditStatus } from '@/data/mockData';
+import type { AuditStatus, EntityFile } from '@/data/mockData';
 import { toast } from 'sonner';
 
 const statusBadge: Record<string, string> = {
@@ -30,6 +31,18 @@ export default function CompanyDetailPage() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [selectedFileId, setSelectedFileId] = useState<string>('all');
   const [pendingStatus, setPendingStatus] = useState<AuditStatus | null>(null);
+  const [previewFile, setPreviewFile] = useState<EntityFile | null>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
+
+  // Close status dropdown on outside click
+  useEffect(() => {
+    if (!statusOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (statusRef.current && !statusRef.current.contains(e.target as Node)) setStatusOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [statusOpen]);
 
   const company = companies.find(c => c.id === companyId);
   if (!company) {
@@ -46,6 +59,14 @@ export default function CompanyDetailPage() {
     (f.companyId === companyId || relatedIds.includes(f.entityId)) &&
     f.reviewPeriod === company.auditPeriod
   );
+
+  // Group files by entity
+  const filesByEntity = companyFiles.reduce<Record<string, EntityFile[]>>((acc, f) => {
+    const key = f.entityId;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(f);
+    return acc;
+  }, {});
 
   const handleStatusClick = (status: AuditStatus) => {
     setPendingStatus(status);
@@ -81,7 +102,7 @@ export default function CompanyDetailPage() {
             <div>
               <h1 className="text-lg font-bold text-gray-900">{company.name}</h1>
               <div className="flex items-center gap-3 mt-1">
-                <div className="relative">
+                <div className="relative" ref={statusRef}>
                   <button
                     onClick={() => setStatusOpen(!statusOpen)}
                     className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer ${statusBadge[company.status] || 'bg-gray-100 text-gray-800'}`}
@@ -142,6 +163,27 @@ export default function CompanyDetailPage() {
             )}
           </div>
         </div>
+
+        {/* Files grouped by entity */}
+        {Object.keys(filesByEntity).length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {Object.entries(filesByEntity).map(([entityId, files]) => (
+              <div key={entityId} className="flex items-center gap-1">
+                <span className="text-[10px] text-gray-400 uppercase tracking-wider mr-1">{files[0].entityName}:</span>
+                {files.map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => setPreviewFile(f)}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-200 transition-all"
+                  >
+                    <FileText className="h-3 w-3 text-red-400" />
+                    <span className="truncate max-w-[140px]">{f.fileName}</span>
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Status confirmation dialog */}
@@ -159,6 +201,9 @@ export default function CompanyDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* File preview overlay */}
+      <FilePreviewOverlay file={previewFile} open={!!previewFile} onClose={() => setPreviewFile(null)} />
 
       {/* Tabs */}
       <Tabs defaultValue="org-chart" className="flex-1 flex flex-col overflow-hidden">

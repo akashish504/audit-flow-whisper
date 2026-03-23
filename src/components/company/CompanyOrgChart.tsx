@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { Company, taggedFiles, AuditStatus } from '@/data/mockData';
 import { Building2, CheckCircle2, Paperclip, Search, FileText, X, ChevronDown } from 'lucide-react';
