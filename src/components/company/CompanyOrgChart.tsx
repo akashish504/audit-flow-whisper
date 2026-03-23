@@ -70,6 +70,16 @@ function OrgNodeCard({ company, isHighlighted }: { company: Company; isHighlight
   const [showFilePicker, setShowFilePicker] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<AuditStatus | null>(null);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showStatusMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) setShowStatusMenu(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showStatusMenu]);
 
   const handleAttachReport = (e: React.MouseEvent) => {
     e.stopPropagation();
