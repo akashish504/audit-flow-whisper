@@ -42,6 +42,7 @@ interface AppState {
   archiveCompany: (companyId: string) => void;
   unarchiveCompany: (companyId: string) => void;
   updateDiscrepancy: (id: string, updates: Partial<DiscrepancyItem>) => void;
+  addCompany: (name: string, contactName: string, contactEmail: string) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
