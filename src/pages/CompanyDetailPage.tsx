@@ -10,6 +10,7 @@ import { CompanyEmailThreads } from '@/components/company/CompanyEmailThreads';
 import { CompanyEmailDraft } from '@/components/company/CompanyEmailDraft';
 import { CompanyAuditLogs } from '@/components/company/CompanyAuditLogs';
 import { FilePreviewOverlay } from '@/components/company/FilePreviewOverlay';
+import { CompanyFiles } from '@/components/company/CompanyFiles';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { entityFiles } from '@/data/mockData';
 import type { AuditStatus, EntityFile } from '@/data/mockData';
