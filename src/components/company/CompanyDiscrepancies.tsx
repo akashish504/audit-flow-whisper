@@ -47,7 +47,7 @@ export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2">
         <AlertTriangle className="h-8 w-8 text-gray-300" />
-        <p className="text-sm text-gray-500">No discrepancies found (threshold: 0.5%)</p>
+        <p className="text-sm text-gray-500">No discrepancies found at current threshold</p>
       </div>
     );
   }

@@ -1,3 +1,4 @@
+import { useAppState } from '@/context/AppContext';
 import { reconciliationData, calculateVariance, formatCurrency } from '@/data/mockData';
 
 export function CompanyFinancials({ companyId, selectedEntityId }: { companyId: string; selectedEntityId?: string }) {
