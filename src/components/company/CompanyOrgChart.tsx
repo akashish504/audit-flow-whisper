@@ -4,11 +4,11 @@ import { Company, taggedFiles } from '@/data/mockData';
 import { Building2, CheckCircle2, Paperclip, Search, FileText, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-const statusColor: Record<string, string> = {
-  'Pending Review': 'bg-warning/20 text-warning border-warning/30',
-  'Discrepancy Identified': 'bg-destructive/20 text-destructive border-destructive/30',
-  'Clarification Requested': 'bg-primary/20 text-primary border-primary/30',
-  'Resolved': 'bg-success/20 text-success border-success/30',
+const statusBadge: Record<string, string> = {
+  'Pending Review': 'bg-yellow-100 text-yellow-800',
+  'Discrepancy Identified': 'bg-red-100 text-red-800',
+  'Clarification Requested': 'bg-blue-100 text-blue-800',
+  'Resolved': 'bg-green-100 text-green-800',
 };
 
 function FilePickerPopover({ companyId, companyName, onClose }: { companyId: string; companyName: string; onClose: () => void }) {
@@ -33,34 +33,34 @@ function FilePickerPopover({ companyId, companyName, onClose }: { companyId: str
   };
 
   return (
-    <div ref={ref} className="absolute top-full left-1/2 -translate-x-1/2 z-50 mt-2 w-72 bg-popover border border-border rounded-lg shadow-lg p-2">
+    <div ref={ref} className="absolute top-full left-1/2 -translate-x-1/2 z-50 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg p-2">
       <div className="flex items-center gap-2 mb-2">
-        <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
         <input
           autoFocus
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search files..."
-          className="w-full text-xs bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
+          className="w-full text-xs bg-transparent border-none outline-none text-gray-900 placeholder:text-gray-400"
         />
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="border-t border-border pt-1 max-h-48 overflow-auto">
+      <div className="border-t border-gray-100 pt-1 max-h-48 overflow-auto">
         {filtered.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-3 text-center">No files found</p>
+          <p className="text-xs text-gray-500 py-3 text-center">No files found</p>
         ) : (
           filtered.map(f => (
             <button
               key={f.id}
               onClick={() => handleAttach(f.id, f.fileName)}
-              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-left hover:bg-accent transition-quart"
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left hover:bg-gray-50 transition-all"
             >
-              <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <FileText className="h-3.5 w-3.5 text-gray-400 shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs text-foreground truncate">{f.fileName}</p>
-                <p className="text-[10px] text-muted-foreground">{f.size} · {f.status}</p>
+                <p className="text-xs text-gray-900 truncate">{f.fileName}</p>
+                <p className="text-[10px] text-gray-400">{f.size} · {f.status}</p>
               </div>
             </button>
           ))
@@ -86,32 +86,32 @@ function OrgNodeCard({ company }: { company: Company }) {
   };
 
   return (
-    <div className="relative bg-card border border-border rounded-lg shadow-sm px-4 py-3 min-w-[200px] max-w-[240px] hover:shadow-md transition-quart group">
+    <div className="relative bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-3 min-w-[200px] max-w-[240px] hover:shadow-md transition-all group">
       <div className="flex items-center gap-2 mb-1.5">
-        <Building2 className="h-4 w-4 text-primary shrink-0" />
-        <span className="text-sm font-semibold text-foreground truncate">{company.name}</span>
+        <Building2 className="h-4 w-4 text-blue-500 shrink-0" />
+        <span className="text-sm font-semibold text-gray-900 truncate">{company.name}</span>
       </div>
       <div className="flex items-center gap-2 mb-2">
-        <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-sm border ${statusColor[company.status]}`}>
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge[company.status] || 'bg-gray-100 text-gray-800'}`}>
           {company.status}
         </span>
       </div>
-      <div className="text-xs text-muted-foreground mb-2">{company.auditPeriod}</div>
+      <div className="text-xs text-gray-500 mb-2">{company.auditPeriod}</div>
       <div className="flex items-center justify-between gap-1">
         <button
           onClick={handleAttachFile}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary press-effect px-2 py-1 rounded-sm border border-border opacity-0 group-hover:opacity-100 transition-quart"
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 px-2 py-1 rounded-md border border-gray-200 opacity-0 group-hover:opacity-100 transition-all"
         >
           <FileText className="h-3 w-3" /> Attach File
         </button>
         {company.hasAuditReport ? (
-          <span className="flex items-center gap-1 text-xs text-success">
+          <span className="flex items-center gap-1 text-xs text-green-600">
             <CheckCircle2 className="h-3.5 w-3.5" /> Report
           </span>
         ) : (
           <button
             onClick={handleAttachReport}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary press-effect px-2 py-1 rounded-sm border border-border opacity-0 group-hover:opacity-100 transition-quart"
+            className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 px-2 py-1 rounded-md border border-gray-200 opacity-0 group-hover:opacity-100 transition-all"
           >
             <Paperclip className="h-3 w-3" /> Report
           </button>
@@ -136,24 +136,16 @@ function TreeNode({ company, companies }: { company: Company; companies: Company
       <OrgNodeCard company={company} />
       {children.length > 0 && (
         <>
-          {/* Vertical line down from parent */}
-          <div className="w-0.5 h-6 bg-foreground/40" />
-          {/* Horizontal bar connecting children */}
+          <div className="w-0.5 h-6 bg-gray-300" />
           {children.length > 1 && (
             <div className="relative w-full flex justify-center">
-              <div
-                className="h-0.5 bg-foreground/40"
-                style={{
-                  width: `calc(100% - ${100 / children.length}%)`,
-                }}
-              />
+              <div className="h-0.5 bg-gray-300" style={{ width: `calc(100% - ${100 / children.length}%)` }} />
             </div>
           )}
           <div className="flex gap-8">
             {children.map(child => (
               <div key={child.id} className="flex flex-col items-center">
-                {/* Vertical line down to child */}
-                <div className="w-0.5 h-6 bg-foreground/40" />
+                <div className="w-0.5 h-6 bg-gray-300" />
                 <TreeNode company={child} companies={companies} />
               </div>
             ))}
