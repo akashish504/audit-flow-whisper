@@ -188,6 +188,7 @@ export default function CompanyDetailPage() {
               { value: 'email-draft', label: 'Email Draft & Sending' },
               { value: 'email-threads', label: 'Email Threads' },
               { value: 'audit-logs', label: 'Audit Logs' },
+              { value: 'files', label: 'Files' },
             ].map(tab => (
               <TabsTrigger
                 key={tab.value}
@@ -211,6 +212,7 @@ export default function CompanyDetailPage() {
           <TabsContent value="email-draft" className="h-full mt-0"><CompanyEmailDraft companyId={company.id} /></TabsContent>
           <TabsContent value="email-threads" className="h-full mt-0"><CompanyEmailThreads companyId={company.id} /></TabsContent>
           <TabsContent value="audit-logs" className="h-full mt-0"><CompanyAuditLogs companyId={company.id} /></TabsContent>
+          <TabsContent value="files" className="h-full mt-0"><CompanyFiles companyId={company.id} /></TabsContent>
         </div>
       </Tabs>
     </div>
