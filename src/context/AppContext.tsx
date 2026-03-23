@@ -30,6 +30,8 @@ interface AppState {
   companies: Company[];
   emails: EmailThread[];
   discrepancies: DiscrepancyItem[];
+  varianceThreshold: number;
+  setVarianceThreshold: (t: number) => void;
   selectedCompanyId: string | null;
   setSelectedCompanyId: (id: string | null) => void;
   addEmail: (email: EmailThread) => void;
