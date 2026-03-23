@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppState } from '@/context/AppContext';
-import { ArrowLeft, Building2 } from 'lucide-react';
+import { ArrowLeft, Building2, ChevronDown } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CompanyOrgChart } from '@/components/company/CompanyOrgChart';
 import { CompanyFinancials } from '@/components/company/CompanyFinancials';
@@ -8,7 +9,9 @@ import { CompanyDiscrepancies } from '@/components/company/CompanyDiscrepancies'
 import { CompanyEmailThreads } from '@/components/company/CompanyEmailThreads';
 import { CompanyEmailDraft } from '@/components/company/CompanyEmailDraft';
 import { CompanyAuditLogs } from '@/components/company/CompanyAuditLogs';
-import { CompanyAuditPeriods } from '@/components/company/CompanyAuditPeriods';
+import { entityFiles } from '@/data/mockData';
+import type { AuditStatus } from '@/data/mockData';
+import { toast } from 'sonner';
 
 const statusBadge: Record<string, string> = {
   'Pending Review': 'bg-yellow-100 text-yellow-800',
@@ -17,10 +20,14 @@ const statusBadge: Record<string, string> = {
   'Resolved': 'bg-green-100 text-green-800',
 };
 
+const allStatuses: AuditStatus[] = ['Pending Review', 'Discrepancy Identified', 'Clarification Requested', 'Resolved'];
+
 export default function CompanyDetailPage() {
   const { companyId } = useParams<{ companyId: string }>();
-  const { companies } = useAppState();
+  const { companies, updateCompanyStatus, setActiveAuditPeriod } = useAppState();
   const navigate = useNavigate();
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [selectedFileId, setSelectedFileId] = useState<string>('all');
 
   const company = companies.find(c => c.id === companyId);
   if (!company) {
@@ -30,6 +37,27 @@ export default function CompanyDetailPage() {
       </div>
     );
   }
+
+  // Get all related entities (children + self)
+  const relatedIds = [company.id, ...companies.filter(c => c.parentId === company.id).map(c => c.id)];
+
+  // Get files for this company and current review period
+  const companyFiles = entityFiles.filter(f =>
+    (f.companyId === companyId || relatedIds.includes(f.entityId)) &&
+    f.reviewPeriod === company.auditPeriod
+  );
+
+  const handleStatusChange = (status: AuditStatus) => {
+    updateCompanyStatus(company.id, status);
+    setStatusOpen(false);
+    toast.success(`Status updated to "${status}"`);
+  };
+
+  const handlePeriodChange = (periodId: string) => {
+    setActiveAuditPeriod(company.id, periodId);
+    setSelectedFileId('all');
+    toast.success('Review period changed');
+  };
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -41,19 +69,75 @@ export default function CompanyDetailPage() {
         >
           <ArrowLeft className="h-3 w-3" /> Back to Portfolio
         </button>
-        <div className="flex items-center gap-3">
-          <Building2 className="h-5 w-5 text-blue-500" />
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">{company.name}</h1>
-            <div className="flex items-center gap-3 mt-1">
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge[company.status] || 'bg-gray-100 text-gray-800'}`}>
-                {company.status}
-              </span>
-              <span className="text-xs text-gray-500 font-mono">{company.auditPeriod}</span>
-              {company.contactName && (
-                <span className="text-xs text-gray-500">Contact: {company.contactName}</span>
-              )}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Building2 className="h-5 w-5 text-blue-500" />
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">{company.name}</h1>
+              <div className="flex items-center gap-3 mt-1">
+                {/* Company-level status dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setStatusOpen(!statusOpen)}
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer ${statusBadge[company.status] || 'bg-gray-100 text-gray-800'}`}
+                  >
+                    {company.status}
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                  {statusOpen && (
+                    <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[200px]">
+                      {allStatuses.map(s => (
+                        <button
+                          key={s}
+                          onClick={() => handleStatusChange(s)}
+                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 ${s === company.status ? 'font-semibold' : ''}`}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${statusBadge[s]?.split(' ')[0]?.replace('100', '400') || 'bg-gray-400'}`} />
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {company.contactName && (
+                  <span className="text-xs text-gray-500">Contact: {company.contactName}</span>
+                )}
+              </div>
             </div>
+          </div>
+
+          {/* Review Period Dropdown + Entity File Dropdown */}
+          <div className="flex items-center gap-3">
+            {/* Review Period Selector */}
+            <div className="flex flex-col items-end gap-1">
+              <label className="text-[10px] text-gray-400 uppercase tracking-wider">Review Period</label>
+              <select
+                value={company.auditPeriods.find(p => p.isActive)?.id || ''}
+                onChange={e => handlePeriodChange(e.target.value)}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              >
+                {company.auditPeriods.map(p => (
+                  <option key={p.id} value={p.id}>{p.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Entity File Selector */}
+            {companyFiles.length > 0 && (
+              <div className="flex flex-col items-end gap-1">
+                <label className="text-[10px] text-gray-400 uppercase tracking-wider">Entity File</label>
+                <select
+                  value={selectedFileId}
+                  onChange={e => setSelectedFileId(e.target.value)}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white max-w-[220px]"
+                >
+                  <option value="all">All Entities</option>
+                  {companyFiles.map(f => (
+                    <option key={f.id} value={f.id}>{f.entityName} — {f.fileName}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -69,7 +153,6 @@ export default function CompanyDetailPage() {
               { value: 'email-draft', label: 'Email Draft & Sending' },
               { value: 'email-threads', label: 'Email Threads' },
               { value: 'audit-logs', label: 'Audit Logs' },
-              { value: 'review-periods', label: 'Review Periods' },
             ].map(tab => (
               <TabsTrigger
                 key={tab.value}
@@ -83,13 +166,16 @@ export default function CompanyDetailPage() {
         </div>
 
         <div className="flex-1 overflow-auto bg-gray-50">
-          <TabsContent value="org-chart" className="h-full mt-0"><CompanyOrgChart companyId={company.id} /></TabsContent>
-          <TabsContent value="financials" className="h-full mt-0"><CompanyFinancials companyId={company.id} /></TabsContent>
+          <TabsContent value="org-chart" className="h-full mt-0">
+            <CompanyOrgChart companyId={company.id} selectedEntityId={selectedFileId !== 'all' ? companyFiles.find(f => f.id === selectedFileId)?.entityId : undefined} />
+          </TabsContent>
+          <TabsContent value="financials" className="h-full mt-0">
+            <CompanyFinancials companyId={company.id} selectedEntityId={selectedFileId !== 'all' ? companyFiles.find(f => f.id === selectedFileId)?.entityId : undefined} />
+          </TabsContent>
           <TabsContent value="discrepancies" className="h-full mt-0"><CompanyDiscrepancies companyId={company.id} /></TabsContent>
           <TabsContent value="email-draft" className="h-full mt-0"><CompanyEmailDraft companyId={company.id} /></TabsContent>
           <TabsContent value="email-threads" className="h-full mt-0"><CompanyEmailThreads companyId={company.id} /></TabsContent>
           <TabsContent value="audit-logs" className="h-full mt-0"><CompanyAuditLogs companyId={company.id} /></TabsContent>
-          <TabsContent value="review-periods" className="h-full mt-0"><CompanyAuditPeriods companyId={company.id} /></TabsContent>
         </div>
       </Tabs>
     </div>
