@@ -18,6 +18,7 @@ const navItems = [
   { title: 'Email Templates', url: '/email-templates', icon: Mail },
   { title: 'File Tagging', url: '/file-tagging', icon: FileText },
   { title: 'Email Tagging', url: '/email-tagging', icon: Tag },
+  { title: 'Parameter Threshold', url: '/parameter-threshold', icon: SlidersHorizontal },
 ];
 
 export function AppSidebar() {

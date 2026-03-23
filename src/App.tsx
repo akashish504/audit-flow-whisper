@@ -31,6 +31,7 @@ const App = () => (
               <Route path="/file-tagging" element={<FileTaggingPage />} />
               <Route path="/file-tagging/:fileId" element={<FileDetailPage />} />
               <Route path="/email-tagging" element={<EmailTaggingPage />} />
+              <Route path="/parameter-threshold" element={<ParameterThresholdPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>
