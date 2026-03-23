@@ -98,16 +98,20 @@ function TreeNode({ company, companies }: { company: Company; companies: Company
       <OrgNodeCard company={company} />
       {children.length > 0 && (
         <>
-          <div className="w-0.5 h-6 bg-gray-300" />
-          {children.length > 1 && (
-            <div className="relative w-full flex justify-center">
-              <div className="h-0.5 bg-gray-300" style={{ width: `calc(100% - ${100 / children.length}%)` }} />
-            </div>
-          )}
+          <div className="w-0.5 h-6 bg-border" />
           <div className="flex gap-8">
-            {children.map(child => (
-              <div key={child.id} className="flex flex-col items-center">
-                <div className="w-0.5 h-6 bg-gray-300" />
+            {children.map((child, idx) => (
+              <div key={child.id} className="relative flex flex-col items-center">
+                <div className="w-0.5 h-6 bg-border" />
+                {children.length > 1 && (
+                  <div
+                    className="absolute top-0 h-0.5 bg-border"
+                    style={{
+                      left: idx === 0 ? '50%' : 0,
+                      right: idx === children.length - 1 ? '50%' : 0,
+                    }}
+                  />
+                )}
                 <TreeNode company={child} companies={companies} />
               </div>
             ))}
