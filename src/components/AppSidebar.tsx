@@ -1,4 +1,4 @@
-import { Building2, Mail, FileText, Tag } from 'lucide-react';
+import { Building2, Mail, FileText, Tag, SlidersHorizontal } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import {
