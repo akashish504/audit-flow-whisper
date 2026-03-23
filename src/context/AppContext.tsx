@@ -67,34 +67,13 @@ export const useAppState = () => {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [companies, setCompanies] = useState<Company[]>(initialCompanies);
   const [emails, setEmails] = useState<EmailThread[]>(initialEmails);
-  const [varianceThreshold, setVarianceThresholdRaw] = useState(0.005);
-  const [discrepancies, setDiscrepancies] = useState<DiscrepancyItem[]>(buildInitialDiscrepancies());
+  const [fieldThresholds, setFieldThresholdsRaw] = useState<Record<string, number>>(defaultFieldThresholds);
+  const [discrepancies, setDiscrepancies] = useState<DiscrepancyItem[]>(buildDiscrepancies(defaultFieldThresholds));
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
 
-  const setVarianceThreshold = (t: number) => {
-    setVarianceThresholdRaw(t);
-    // Rebuild discrepancies with new threshold
-    const items: DiscrepancyItem[] = [];
-    for (const [companyId, fields] of Object.entries(reconciliationData)) {
-      for (const field of fields) {
-        const v = calculateVariance(field.Source_Value, field.Extracted_Value, t);
-        if (v.isFlagged) {
-          items.push({
-            id: `disc-${companyId}-${field.entityId || companyId}-${field.Field_Name}`,
-            fieldName: field.Field_Name,
-            sourceValue: field.Source_Value,
-            extractedValue: field.Extracted_Value,
-            entityId: field.entityId || companyId,
-            entityName: field.entityName || companyId,
-            enabled: true,
-            remarks: '',
-            l1Reviewer: '',
-            l2Reviewer: '',
-          });
-        }
-      }
-    }
-    setDiscrepancies(items);
+  const setFieldThresholds = (thresholds: Record<string, number>) => {
+    setFieldThresholdsRaw(thresholds);
+    setDiscrepancies(buildDiscrepancies(thresholds));
   };
 
   const addEmail = (email: EmailThread) => setEmails(prev => [email, ...prev]);
