@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { Company, taggedFiles, AuditStatus } from '@/data/mockData';
 import { Building2, CheckCircle2, Paperclip, Search, FileText, X, ChevronDown } from 'lucide-react';
@@ -70,6 +70,16 @@ function OrgNodeCard({ company, isHighlighted }: { company: Company; isHighlight
   const [showFilePicker, setShowFilePicker] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<AuditStatus | null>(null);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showStatusMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) setShowStatusMenu(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showStatusMenu]);
 
   const handleAttachReport = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -97,7 +107,7 @@ function OrgNodeCard({ company, isHighlighted }: { company: Company; isHighlight
         <span className="text-sm font-semibold text-gray-900 truncate">{company.name}</span>
       </div>
       {/* Entity-level status dropdown */}
-      <div className="relative mb-2">
+      <div className="relative mb-2" ref={statusMenuRef}>
         <button
           onClick={(e) => { e.stopPropagation(); setShowStatusMenu(!showStatusMenu); }}
           className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer ${statusBadge[company.entityStatus || company.status] || 'bg-gray-100 text-gray-800'}`}

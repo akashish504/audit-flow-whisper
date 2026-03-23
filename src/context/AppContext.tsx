@@ -42,6 +42,7 @@ interface AppState {
   archiveCompany: (companyId: string) => void;
   unarchiveCompany: (companyId: string) => void;
   updateDiscrepancy: (id: string, updates: Partial<DiscrepancyItem>) => void;
+  addCompany: (name: string, contactName: string, contactEmail: string) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -139,12 +140,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setDiscrepancies(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
   };
 
+  const addCompany = (name: string, contactName: string, contactEmail: string) => {
+    const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).slice(2, 6);
+    const newCompany: Company = {
+      id,
+      name,
+      parentId: 'holding',
+      status: 'Pending Review',
+      auditPeriod: 'Q4 2024',
+      auditPeriods: [{ id: `ap-${id}-1`, label: 'Q4 2024', status: 'Pending Review', isActive: true, createdAt: new Date().toISOString() }],
+      contactEmail,
+      contactName,
+      hasAuditReport: false,
+      entityStatus: 'Pending Review',
+    };
+    setCompanies(prev => [...prev, newCompany]);
+  };
+
   return (
     <AppContext.Provider value={{
       companies, emails, discrepancies, selectedCompanyId, setSelectedCompanyId,
       addEmail, attachReport, updateCompanyStatus, updateEntityStatus,
       addAuditPeriod, setActiveAuditPeriod, bulkCreateReviewCycles,
-      archiveCompany, unarchiveCompany, updateDiscrepancy,
+      archiveCompany, unarchiveCompany, updateDiscrepancy, addCompany,
     }}>
       {children}
     </AppContext.Provider>

@@ -1,8 +1,8 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import { Building2, ChevronRight, Search, X, Upload, Download, Archive, ArchiveRestore, ChevronDown } from 'lucide-react';
-import { AuditStatus } from '@/data/mockData';
+import { Building2, ChevronRight, Search, X, Upload, Download, Archive, ArchiveRestore, ChevronDown, FileText, Eye } from 'lucide-react';
+import { AuditStatus, entityFiles } from '@/data/mockData';
 import { toast } from '@/components/ui/sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -21,7 +21,11 @@ const statusDot: Record<string, string> = {
 };
 
 const allStatuses: AuditStatus[] = ['Pending Review', 'Discrepancy Identified', 'Clarification Requested', 'Resolved'];
-const allPeriods = ['Q4 2024', 'Q3 2024', 'Q2 2024', 'Q1 2024', 'Q1 2025'];
+
+function extractYear(period: string): string {
+  const match = period.match(/(\d{4})/);
+  return match ? match[1] : period;
+}
 
 function StatusStats({ entities }: { entities: { status: AuditStatus }[] }) {
   const counts = allStatuses.map(s => ({
@@ -45,21 +49,31 @@ function StatusStats({ entities }: { entities: { status: AuditStatus }[] }) {
 }
 
 function downloadSampleCsv() {
-  const csv = 'company_id,period\nacme,Q1 2025\nmeridian,Q1 2025\nnexus,Q1 2025';
+  const csv = 'company_name,contact_name,contact_email\nNew Company Inc,John Doe,john@newco.com';
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'review_cycle_sample.csv';
+  a.download = 'company_upload_sample.csv';
   a.click();
   URL.revokeObjectURL(url);
 }
 
 function StatusDropdown({ company, onStatusChange }: { company: { id: string; name: string; status: AuditStatus }; onStatusChange: (id: string, name: string, currentStatus: AuditStatus, newStatus: AuditStatus) => void }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
 
   return (
-    <div className="relative" onClick={e => e.stopPropagation()}>
+    <div className="relative" ref={ref} onClick={e => e.stopPropagation()}>
       <button
         onClick={() => setOpen(!open)}
         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer ${statusBadge[company.status] || 'bg-gray-100 text-gray-800'}`}
@@ -85,16 +99,53 @@ function StatusDropdown({ company, onStatusChange }: { company: { id: string; na
   );
 }
 
+function FileListPopover({ companyId, onClose }: { companyId: string; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const files = entityFiles.filter(f => f.companyId === companyId || f.entityId === companyId);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  return (
+    <div ref={ref} className="absolute top-full right-0 mt-1 z-50 w-72 bg-white border border-gray-200 rounded-lg shadow-lg p-2">
+      <div className="flex items-center justify-between px-2 py-1 mb-1">
+        <span className="text-xs font-semibold text-gray-900">Attached Files</span>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="h-3.5 w-3.5" /></button>
+      </div>
+      <div className="border-t border-gray-100 pt-1 max-h-48 overflow-auto">
+        {files.length === 0 ? (
+          <p className="text-xs text-gray-500 py-3 text-center">No files attached</p>
+        ) : (
+          files.map(f => (
+            <div key={f.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 transition-all">
+              <FileText className="h-3.5 w-3.5 text-red-400 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-gray-900 truncate">{f.fileName}</p>
+                <p className="text-[10px] text-gray-400">{f.entityName} · {f.reviewPeriod}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function PortfolioCompaniesPage() {
-  const { companies, bulkCreateReviewCycles, archiveCompany, unarchiveCompany, updateCompanyStatus } = useAppState();
+  const { companies, addCompany, archiveCompany, unarchiveCompany, updateCompanyStatus } = useAppState();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<AuditStatus | ''>('');
-  const [periodFilter, setPeriodFilter] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<{ id: string; name: string; from: AuditStatus; to: AuditStatus } | null>(null);
+  const [fileListOpen, setFileListOpen] = useState<string | null>(null);
 
   const entities = companies.filter(c => c.parentId !== null);
   const activeEntities = entities.filter(c => !c.isArchived);
@@ -106,12 +157,11 @@ export default function PortfolioCompaniesPage() {
     return displayEntities.filter(c => {
       if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (statusFilter && c.status !== statusFilter) return false;
-      if (periodFilter && c.auditPeriod !== periodFilter) return false;
       return true;
     });
-  }, [displayEntities, search, statusFilter, periodFilter]);
+  }, [displayEntities, search, statusFilter]);
 
-  const hasFilters = search || statusFilter || periodFilter;
+  const hasFilters = search || statusFilter;
 
   const handleStatusChange = (id: string, name: string, currentStatus: AuditStatus, newStatus: AuditStatus) => {
     setPendingStatus({ id, name, from: currentStatus, to: newStatus });
@@ -142,35 +192,31 @@ export default function PortfolioCompaniesPage() {
       }
 
       const header = lines[0].split(',').map(h => h.trim().toLowerCase());
-      const companyIdIdx = header.findIndex(h => h === 'company_id' || h === 'companyid');
-      const periodIdx = header.findIndex(h => h === 'period' || h === 'audit_period' || h === 'review_period');
+      const nameIdx = header.findIndex(h => h === 'company_name' || h === 'name');
+      const contactNameIdx = header.findIndex(h => h === 'contact_name');
+      const contactEmailIdx = header.findIndex(h => h === 'contact_email');
 
-      if (companyIdIdx === -1 || periodIdx === -1) {
-        toast.error('CSV must have "company_id" and "period" columns');
+      if (nameIdx === -1) {
+        toast.error('CSV must have a "company_name" column');
         return;
       }
 
-      const rows: { companyId: string; periodLabel: string }[] = [];
+      let added = 0;
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(',').map(c => c.trim());
-        const companyId = cols[companyIdIdx];
-        const periodLabel = cols[periodIdx];
-        if (companyId && periodLabel) {
-          rows.push({ companyId, periodLabel });
-        }
+        const name = cols[nameIdx];
+        if (!name) continue;
+        const contactName = contactNameIdx !== -1 ? cols[contactNameIdx] || '' : '';
+        const contactEmail = contactEmailIdx !== -1 ? cols[contactEmailIdx] || '' : '';
+        addCompany(name, contactName, contactEmail);
+        added++;
       }
 
-      if (rows.length === 0) {
+      if (added === 0) {
         toast.error('No valid rows found in CSV');
-        return;
+      } else {
+        toast.success(`Added ${added} company(ies)`);
       }
-
-      const knownIds = new Set(companies.map(c => c.id));
-      const validRows = rows.filter(r => knownIds.has(r.companyId));
-      const skipped = rows.length - validRows.length;
-
-      bulkCreateReviewCycles(validRows);
-      toast.success(`Created ${validRows.length} review cycle(s)${skipped > 0 ? `, ${skipped} skipped (unknown company)` : ''}`);
     };
     reader.readAsText(file);
     e.target.value = '';
@@ -214,7 +260,7 @@ export default function PortfolioCompaniesPage() {
             onClick={() => fileInputRef.current?.click()}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 bg-blue-500 text-white hover:bg-blue-600 focus:ring-blue-500"
           >
-            <Upload className="h-4 w-4" /> Upload CSV
+            <Upload className="h-4 w-4" /> Upload Companies
           </button>
         </div>
       </div>
@@ -242,18 +288,9 @@ export default function PortfolioCompaniesPage() {
           {allStatuses.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
 
-        <select
-          value={periodFilter}
-          onChange={e => setPeriodFilter(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="">All Periods</option>
-          {allPeriods.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
-
         {hasFilters && (
           <button
-            onClick={() => { setSearch(''); setStatusFilter(''); setPeriodFilter(''); }}
+            onClick={() => { setSearch(''); setStatusFilter(''); }}
             className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-700 border border-gray-300 bg-white hover:bg-gray-50 transition-all"
           >
             <X className="h-3.5 w-3.5" /> Clear
@@ -267,10 +304,10 @@ export default function PortfolioCompaniesPage() {
           <thead>
             <tr className="bg-gray-50">
               <th className="text-xs font-medium text-gray-500 uppercase tracking-wider text-left px-4 py-3">Company</th>
-              <th className="text-xs font-medium text-gray-500 uppercase tracking-wider text-left px-4 py-3">Parent</th>
               <th className="text-xs font-medium text-gray-500 uppercase tracking-wider text-left px-4 py-3">Status</th>
-              <th className="text-xs font-medium text-gray-500 uppercase tracking-wider text-left px-4 py-3">Active Period</th>
+              <th className="text-xs font-medium text-gray-500 uppercase tracking-wider text-left px-4 py-3">Ending Year</th>
               <th className="text-xs font-medium text-gray-500 uppercase tracking-wider text-left px-4 py-3">Contact</th>
+              <th className="text-xs font-medium text-gray-500 uppercase tracking-wider text-left px-4 py-3">Files</th>
               <th className="text-xs font-medium text-gray-500 uppercase tracking-wider text-center px-4 py-3 w-20"></th>
             </tr>
           </thead>
@@ -283,7 +320,7 @@ export default function PortfolioCompaniesPage() {
               </tr>
             ) : (
               filtered.map(company => {
-                const parent = companies.find(c => c.id === company.parentId);
+                const companyFileCount = entityFiles.filter(f => f.companyId === company.id || f.entityId === company.id).length;
                 return (
                   <tr
                     key={company.id}
@@ -296,12 +333,25 @@ export default function PortfolioCompaniesPage() {
                         <span className="text-sm font-medium text-blue-600 hover:text-blue-800">{company.name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{parent?.name || '—'}</td>
                     <td className="px-4 py-3">
                       <StatusDropdown company={company} onStatusChange={handleStatusChange} />
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 font-mono">{company.auditPeriod}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500 font-mono">{extractYear(company.auditPeriod)}</td>
                     <td className="px-4 py-3 text-sm text-gray-500">{company.contactName || '—'}</td>
+                    <td className="px-4 py-3">
+                      <div className="relative" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => setFileListOpen(fileListOpen === company.id ? null : company.id)}
+                          className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 transition-colors"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          View Files ({companyFileCount})
+                        </button>
+                        {fileListOpen === company.id && (
+                          <FileListPopover companyId={company.id} onClose={() => setFileListOpen(null)} />
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-end gap-1">
                         {showArchived ? (
