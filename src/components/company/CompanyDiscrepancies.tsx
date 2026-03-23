@@ -1,36 +1,41 @@
-import { reconciliationData, calculateVariance, formatCurrency } from '@/data/mockData';
+import { useState } from 'react';
 import { useAppState } from '@/context/AppContext';
-import { AlertTriangle, Flag } from 'lucide-react';
+import { calculateVariance, formatCurrency } from '@/data/mockData';
+import type { DiscrepancyItem } from '@/data/mockData';
+import { AlertTriangle, Pencil, Building2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
 export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
-  const { companies, addEmail, updateCompanyStatus } = useAppState();
+  const { companies, discrepancies, updateDiscrepancy } = useAppState();
   const company = companies.find(c => c.id === companyId);
-  const data = reconciliationData[companyId] || [];
-  const flagged = data.filter(row => {
-    const v = calculateVariance(row.Source_Value, row.Extracted_Value);
-    return v.isFlagged;
-  });
 
-  const handleFlag = (fieldName: string, sourceVal: number, extractedVal: number) => {
-    if (!company) return;
-    const variance = calculateVariance(sourceVal, extractedVal);
-    const email = {
-      id: `e-${Date.now()}`,
-      companyId,
-      subject: `${fieldName} Variance — ${company.name} ${company.auditPeriod}`,
-      timestamp: new Date().toISOString(),
-      from: 'audit@vantagecap.com',
-      to: company.contactEmail,
-      body: `${company.contactName},\n\nVariance of ${(Math.abs(variance.percent) * 100).toFixed(2)}% in ${fieldName}.\n\nSource: ${formatCurrency(sourceVal)}\nExtracted: ${formatCurrency(extractedVal)}\n\nPlease clarify.\n\nRegards,\nVantage Audit Team`,
-      status: 'draft' as const,
-    };
-    addEmail(email);
-    updateCompanyStatus(companyId, 'Clarification Requested');
-    toast.success('Discrepancy flagged — draft email created');
+  // Get all entity IDs related to this company (self + children)
+  const relatedIds = [companyId, ...companies.filter(c => c.parentId === companyId).map(c => c.id)];
+  const companyDiscrepancies = discrepancies.filter(d => relatedIds.includes(d.entityId));
+
+  const [editingItem, setEditingItem] = useState<DiscrepancyItem | null>(null);
+  const [editForm, setEditForm] = useState({ enabled: true, remarks: '', l1Reviewer: '', l2Reviewer: '' });
+
+  const openEdit = (item: DiscrepancyItem) => {
+    setEditForm({
+      enabled: item.enabled,
+      remarks: item.remarks,
+      l1Reviewer: item.l1Reviewer,
+      l2Reviewer: item.l2Reviewer,
+    });
+    setEditingItem(item);
   };
 
-  if (flagged.length === 0) {
+  const saveEdit = () => {
+    if (!editingItem) return;
+    updateDiscrepancy(editingItem.id, editForm);
+    setEditingItem(null);
+    toast.success('Discrepancy updated');
+  };
+
+  if (companyDiscrepancies.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2">
         <AlertTriangle className="h-8 w-8 text-gray-300" />
@@ -42,38 +47,122 @@ export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
   return (
     <div className="p-6">
       <div className="mb-4">
-        <p className="text-xs text-gray-500">{flagged.length} discrepanc{flagged.length === 1 ? 'y' : 'ies'} exceeding 0.5% threshold</p>
+        <p className="text-xs text-gray-500">{companyDiscrepancies.length} discrepanc{companyDiscrepancies.length === 1 ? 'y' : 'ies'} exceeding 0.5% threshold</p>
       </div>
 
       <div className="space-y-3">
-        {flagged.map(row => {
-          const v = calculateVariance(row.Source_Value, row.Extracted_Value);
+        {companyDiscrepancies.map(item => {
+          const v = calculateVariance(item.sourceValue, item.extractedValue);
           return (
-            <div key={row.Field_Name} className="bg-white border border-red-200 rounded-lg p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-all">
-              <div>
+            <div key={item.id} className={`bg-white border rounded-lg p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-all ${item.enabled ? 'border-red-200' : 'border-gray-200 opacity-60'}`}>
+              <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
-                  <span className="text-sm font-semibold text-gray-900">{row.Field_Name}</span>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  <AlertTriangle className={`h-4 w-4 ${item.enabled ? 'text-red-500' : 'text-gray-400'}`} />
+                  <span className="text-sm font-semibold text-gray-900">{item.fieldName}</span>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${item.enabled ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
                     {(v.percent * 100).toFixed(2)}%
+                  </span>
+                  {/* Entity label */}
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                    <Building2 className="h-3 w-3" />
+                    {item.entityName}
                   </span>
                 </div>
                 <div className="text-xs text-gray-500 space-x-4">
-                  <span>Source: {formatCurrency(row.Source_Value)}</span>
-                  <span>Extracted: {formatCurrency(row.Extracted_Value)}</span>
+                  <span>Source: {formatCurrency(item.sourceValue)}</span>
+                  <span>Extracted: {formatCurrency(item.extractedValue)}</span>
                   <span>Diff: {formatCurrency(v.diff)}</span>
                 </div>
               </div>
-              <button
-                onClick={() => handleFlag(row.Field_Name, row.Source_Value, row.Extracted_Value)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium text-xs border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-              >
-                <Flag className="h-3 w-3" /> Flag & Draft Email
-              </button>
+
+              <div className="flex items-center gap-3 shrink-0 ml-4">
+                {/* Enable/Disable toggle */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-gray-400 uppercase">{item.enabled ? 'Enabled' : 'Disabled'}</span>
+                  <Switch
+                    checked={item.enabled}
+                    onCheckedChange={(checked) => updateDiscrepancy(item.id, { enabled: checked })}
+                  />
+                </div>
+                {/* Edit button */}
+                <button
+                  onClick={() => openEdit(item)}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                >
+                  <Pencil className="h-3 w-3" /> Edit
+                </button>
+              </div>
             </div>
           );
         })}
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingItem} onOpenChange={(open) => { if (!open) setEditingItem(null); }}>
+        <DialogContent className="bg-white rounded-lg p-6 w-full max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-gray-900">Edit Discrepancy</DialogTitle>
+          </DialogHeader>
+          {editingItem && (
+            <div className="space-y-4 mt-2">
+              <div className="text-sm text-gray-700 font-medium">{editingItem.fieldName} — {editingItem.entityName}</div>
+
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-700">Enable for clarification</label>
+                <Switch
+                  checked={editForm.enabled}
+                  onCheckedChange={(checked) => setEditForm(prev => ({ ...prev, enabled: checked }))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Remarks</label>
+                <textarea
+                  value={editForm.remarks}
+                  onChange={e => setEditForm(prev => ({ ...prev, remarks: e.target.value }))}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="Add remarks..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">L1 Reviewer</label>
+                <input
+                  value={editForm.l1Reviewer}
+                  onChange={e => setEditForm(prev => ({ ...prev, l1Reviewer: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="Enter L1 Reviewer name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">L2 Reviewer</label>
+                <input
+                  value={editForm.l2Reviewer}
+                  onChange={e => setEditForm(prev => ({ ...prev, l2Reviewer: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="Enter L2 Reviewer name"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="mt-4">
+            <button
+              onClick={() => setEditingItem(null)}
+              className="px-4 py-2 rounded-lg font-medium text-sm border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={saveEdit}
+              className="px-4 py-2 rounded-lg font-medium text-sm bg-blue-500 text-white hover:bg-blue-600 transition-all"
+            >
+              Save
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

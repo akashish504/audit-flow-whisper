@@ -19,12 +19,37 @@ export interface Company {
   contactName: string;
   hasAuditReport: boolean;
   isArchived?: boolean;
+  entityStatus?: AuditStatus;
 }
 
 export interface ReconciliationField {
   Field_Name: string;
   Source_Value: number;
   Extracted_Value: number;
+  entityId?: string;
+  entityName?: string;
+}
+
+export interface DiscrepancyItem {
+  id: string;
+  fieldName: string;
+  sourceValue: number;
+  extractedValue: number;
+  entityId: string;
+  entityName: string;
+  enabled: boolean;
+  remarks: string;
+  l1Reviewer: string;
+  l2Reviewer: string;
+}
+
+export interface EntityFile {
+  id: string;
+  fileName: string;
+  entityId: string;
+  entityName: string;
+  companyId: string;
+  reviewPeriod: string;
 }
 
 export interface EmailThread {
@@ -70,63 +95,82 @@ export const companies: Company[] = [
   { id: 'holding', name: 'Vantage Capital Partners', parentId: null, status: 'Pending Review', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-h-1', label: 'Q4 2024', status: 'Pending Review', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
     { id: 'ap-h-2', label: 'Q3 2024', status: 'Resolved', isActive: false, createdAt: '2024-10-01T00:00:00Z' },
-  ], contactEmail: '', contactName: '', hasAuditReport: false },
+  ], contactEmail: '', contactName: '', hasAuditReport: false, entityStatus: 'Pending Review' },
   { id: 'acme', name: 'Acme Corp', parentId: 'holding', status: 'Discrepancy Identified', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-a-1', label: 'Q4 2024', status: 'Discrepancy Identified', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
     { id: 'ap-a-2', label: 'Q3 2024', status: 'Resolved', isActive: false, createdAt: '2024-10-01T00:00:00Z' },
     { id: 'ap-a-3', label: 'Q2 2024', status: 'Resolved', isActive: false, createdAt: '2024-07-01T00:00:00Z' },
-  ], contactEmail: 'j.chen@acmecorp.com', contactName: 'James Chen', hasAuditReport: true },
+  ], contactEmail: 'j.chen@acmecorp.com', contactName: 'James Chen', hasAuditReport: true, entityStatus: 'Discrepancy Identified' },
   { id: 'acme-eu', name: 'Acme Europe GmbH', parentId: 'acme', status: 'Pending Review', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-ae-1', label: 'Q4 2024', status: 'Pending Review', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
-  ], contactEmail: 'k.mueller@acme-eu.de', contactName: 'Klaus Mueller', hasAuditReport: false },
+  ], contactEmail: 'k.mueller@acme-eu.de', contactName: 'Klaus Mueller', hasAuditReport: false, entityStatus: 'Pending Review' },
   { id: 'acme-asia', name: 'Acme Asia Pacific', parentId: 'acme', status: 'Resolved', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-aa-1', label: 'Q4 2024', status: 'Resolved', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
     { id: 'ap-aa-2', label: 'Q3 2024', status: 'Resolved', isActive: false, createdAt: '2024-10-01T00:00:00Z' },
-  ], contactEmail: 'l.tanaka@acme-ap.jp', contactName: 'Lisa Tanaka', hasAuditReport: true },
+  ], contactEmail: 'l.tanaka@acme-ap.jp', contactName: 'Lisa Tanaka', hasAuditReport: true, entityStatus: 'Resolved' },
   { id: 'nexus', name: 'Nexus Technologies', parentId: 'holding', status: 'Clarification Requested', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-n-1', label: 'Q4 2024', status: 'Clarification Requested', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
     { id: 'ap-n-2', label: 'Q3 2024', status: 'Resolved', isActive: false, createdAt: '2024-10-01T00:00:00Z' },
-  ], contactEmail: 'm.rodriguez@nexustech.io', contactName: 'Maria Rodriguez', hasAuditReport: true },
+  ], contactEmail: 'm.rodriguez@nexustech.io', contactName: 'Maria Rodriguez', hasAuditReport: true, entityStatus: 'Clarification Requested' },
   { id: 'nexus-ai', name: 'Nexus AI Labs', parentId: 'nexus', status: 'Pending Review', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-na-1', label: 'Q4 2024', status: 'Pending Review', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
-  ], contactEmail: 'r.patel@nexus-ai.io', contactName: 'Raj Patel', hasAuditReport: false },
+  ], contactEmail: 'r.patel@nexus-ai.io', contactName: 'Raj Patel', hasAuditReport: false, entityStatus: 'Pending Review' },
   { id: 'meridian', name: 'Meridian Health', parentId: 'holding', status: 'Discrepancy Identified', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-m-1', label: 'Q4 2024', status: 'Discrepancy Identified', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
     { id: 'ap-m-2', label: 'Q3 2024', status: 'Resolved', isActive: false, createdAt: '2024-10-01T00:00:00Z' },
-  ], contactEmail: 's.johnson@meridianhealth.com', contactName: 'Sarah Johnson', hasAuditReport: true },
+  ], contactEmail: 's.johnson@meridianhealth.com', contactName: 'Sarah Johnson', hasAuditReport: true, entityStatus: 'Discrepancy Identified' },
   { id: 'meridian-rx', name: 'Meridian Pharma', parentId: 'meridian', status: 'Pending Review', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-mr-1', label: 'Q4 2024', status: 'Pending Review', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
-  ], contactEmail: 'd.kim@meridian-rx.com', contactName: 'David Kim', hasAuditReport: true },
+  ], contactEmail: 'd.kim@meridian-rx.com', contactName: 'David Kim', hasAuditReport: true, entityStatus: 'Pending Review' },
+];
+
+export const entityFiles: EntityFile[] = [
+  { id: 'ef1', fileName: 'Acme_Corp_Q4_2024_Audit.pdf', entityId: 'acme', entityName: 'Acme Corp', companyId: 'acme', reviewPeriod: 'Q4 2024' },
+  { id: 'ef2', fileName: 'Acme_EU_Q4_2024_Audit.pdf', entityId: 'acme-eu', entityName: 'Acme Europe GmbH', companyId: 'acme', reviewPeriod: 'Q4 2024' },
+  { id: 'ef3', fileName: 'Acme_Asia_Q4_2024_Audit.pdf', entityId: 'acme-asia', entityName: 'Acme Asia Pacific', companyId: 'acme', reviewPeriod: 'Q4 2024' },
+  { id: 'ef4', fileName: 'Acme_Corp_Q3_2024_Audit.pdf', entityId: 'acme', entityName: 'Acme Corp', companyId: 'acme', reviewPeriod: 'Q3 2024' },
+  { id: 'ef5', fileName: 'Nexus_Tech_Q4_2024_Report.pdf', entityId: 'nexus', entityName: 'Nexus Technologies', companyId: 'nexus', reviewPeriod: 'Q4 2024' },
+  { id: 'ef6', fileName: 'Nexus_AI_Q4_2024_Report.pdf', entityId: 'nexus-ai', entityName: 'Nexus AI Labs', companyId: 'nexus', reviewPeriod: 'Q4 2024' },
+  { id: 'ef7', fileName: 'Meridian_Health_Q4_2024.pdf', entityId: 'meridian', entityName: 'Meridian Health', companyId: 'meridian', reviewPeriod: 'Q4 2024' },
+  { id: 'ef8', fileName: 'Meridian_Pharma_Q4_2024.pdf', entityId: 'meridian-rx', entityName: 'Meridian Pharma', companyId: 'meridian', reviewPeriod: 'Q4 2024' },
 ];
 
 export const reconciliationData: Record<string, ReconciliationField[]> = {
   acme: [
-    { Field_Name: 'Revenue', Source_Value: 142500000, Extracted_Value: 142500000 },
-    { Field_Name: 'COGS', Source_Value: 85200000, Extracted_Value: 85950000 },
-    { Field_Name: 'Gross Profit', Source_Value: 57300000, Extracted_Value: 56550000 },
-    { Field_Name: 'EBITDA', Source_Value: 28400000, Extracted_Value: 28400000 },
-    { Field_Name: 'Net Income', Source_Value: 18200000, Extracted_Value: 18350000 },
-    { Field_Name: 'Total Assets', Source_Value: 312000000, Extracted_Value: 312000000 },
-    { Field_Name: 'Total Liabilities', Source_Value: 178000000, Extracted_Value: 179200000 },
-    { Field_Name: 'Shareholders Equity', Source_Value: 134000000, Extracted_Value: 132800000 },
+    { Field_Name: 'Revenue', Source_Value: 142500000, Extracted_Value: 142500000, entityId: 'acme', entityName: 'Acme Corp' },
+    { Field_Name: 'COGS', Source_Value: 85200000, Extracted_Value: 85950000, entityId: 'acme', entityName: 'Acme Corp' },
+    { Field_Name: 'Gross Profit', Source_Value: 57300000, Extracted_Value: 56550000, entityId: 'acme', entityName: 'Acme Corp' },
+    { Field_Name: 'EBITDA', Source_Value: 28400000, Extracted_Value: 28400000, entityId: 'acme', entityName: 'Acme Corp' },
+    { Field_Name: 'Net Income', Source_Value: 18200000, Extracted_Value: 18350000, entityId: 'acme', entityName: 'Acme Corp' },
+    { Field_Name: 'Total Assets', Source_Value: 312000000, Extracted_Value: 312000000, entityId: 'acme', entityName: 'Acme Corp' },
+    { Field_Name: 'Total Liabilities', Source_Value: 178000000, Extracted_Value: 179200000, entityId: 'acme', entityName: 'Acme Corp' },
+    { Field_Name: 'Shareholders Equity', Source_Value: 134000000, Extracted_Value: 132800000, entityId: 'acme', entityName: 'Acme Corp' },
+    { Field_Name: 'Revenue', Source_Value: 32000000, Extracted_Value: 32150000, entityId: 'acme-eu', entityName: 'Acme Europe GmbH' },
+    { Field_Name: 'COGS', Source_Value: 18500000, Extracted_Value: 18500000, entityId: 'acme-eu', entityName: 'Acme Europe GmbH' },
+    { Field_Name: 'Net Income', Source_Value: 6200000, Extracted_Value: 6200000, entityId: 'acme-eu', entityName: 'Acme Europe GmbH' },
+    { Field_Name: 'Revenue', Source_Value: 45000000, Extracted_Value: 45000000, entityId: 'acme-asia', entityName: 'Acme Asia Pacific' },
+    { Field_Name: 'COGS', Source_Value: 22000000, Extracted_Value: 22000000, entityId: 'acme-asia', entityName: 'Acme Asia Pacific' },
+    { Field_Name: 'Net Income', Source_Value: 11500000, Extracted_Value: 11500000, entityId: 'acme-asia', entityName: 'Acme Asia Pacific' },
   ],
   meridian: [
-    { Field_Name: 'Revenue', Source_Value: 89300000, Extracted_Value: 89300000 },
-    { Field_Name: 'COGS', Source_Value: 41200000, Extracted_Value: 41800000 },
-    { Field_Name: 'Gross Profit', Source_Value: 48100000, Extracted_Value: 47500000 },
-    { Field_Name: 'EBITDA', Source_Value: 22100000, Extracted_Value: 21850000 },
-    { Field_Name: 'Net Income', Source_Value: 14500000, Extracted_Value: 14500000 },
-    { Field_Name: 'Total Assets', Source_Value: 198000000, Extracted_Value: 198000000 },
-    { Field_Name: 'Total Liabilities', Source_Value: 112000000, Extracted_Value: 112700000 },
-    { Field_Name: 'Shareholders Equity', Source_Value: 86000000, Extracted_Value: 85300000 },
+    { Field_Name: 'Revenue', Source_Value: 89300000, Extracted_Value: 89300000, entityId: 'meridian', entityName: 'Meridian Health' },
+    { Field_Name: 'COGS', Source_Value: 41200000, Extracted_Value: 41800000, entityId: 'meridian', entityName: 'Meridian Health' },
+    { Field_Name: 'Gross Profit', Source_Value: 48100000, Extracted_Value: 47500000, entityId: 'meridian', entityName: 'Meridian Health' },
+    { Field_Name: 'EBITDA', Source_Value: 22100000, Extracted_Value: 21850000, entityId: 'meridian', entityName: 'Meridian Health' },
+    { Field_Name: 'Net Income', Source_Value: 14500000, Extracted_Value: 14500000, entityId: 'meridian', entityName: 'Meridian Health' },
+    { Field_Name: 'Total Assets', Source_Value: 198000000, Extracted_Value: 198000000, entityId: 'meridian', entityName: 'Meridian Health' },
+    { Field_Name: 'Total Liabilities', Source_Value: 112000000, Extracted_Value: 112700000, entityId: 'meridian', entityName: 'Meridian Health' },
+    { Field_Name: 'Shareholders Equity', Source_Value: 86000000, Extracted_Value: 85300000, entityId: 'meridian', entityName: 'Meridian Health' },
+    { Field_Name: 'Revenue', Source_Value: 25000000, Extracted_Value: 25300000, entityId: 'meridian-rx', entityName: 'Meridian Pharma' },
+    { Field_Name: 'COGS', Source_Value: 12000000, Extracted_Value: 12000000, entityId: 'meridian-rx', entityName: 'Meridian Pharma' },
   ],
   nexus: [
-    { Field_Name: 'Revenue', Source_Value: 67800000, Extracted_Value: 67800000 },
-    { Field_Name: 'COGS', Source_Value: 28900000, Extracted_Value: 28900000 },
-    { Field_Name: 'Gross Profit', Source_Value: 38900000, Extracted_Value: 38900000 },
-    { Field_Name: 'EBITDA', Source_Value: 15200000, Extracted_Value: 15200000 },
-    { Field_Name: 'Net Income', Source_Value: 9800000, Extracted_Value: 9800000 },
-    { Field_Name: 'Total Assets', Source_Value: 145000000, Extracted_Value: 145000000 },
+    { Field_Name: 'Revenue', Source_Value: 67800000, Extracted_Value: 67800000, entityId: 'nexus', entityName: 'Nexus Technologies' },
+    { Field_Name: 'COGS', Source_Value: 28900000, Extracted_Value: 28900000, entityId: 'nexus', entityName: 'Nexus Technologies' },
+    { Field_Name: 'Gross Profit', Source_Value: 38900000, Extracted_Value: 38900000, entityId: 'nexus', entityName: 'Nexus Technologies' },
+    { Field_Name: 'EBITDA', Source_Value: 15200000, Extracted_Value: 15200000, entityId: 'nexus', entityName: 'Nexus Technologies' },
+    { Field_Name: 'Net Income', Source_Value: 9800000, Extracted_Value: 9800000, entityId: 'nexus', entityName: 'Nexus Technologies' },
+    { Field_Name: 'Total Assets', Source_Value: 145000000, Extracted_Value: 145000000, entityId: 'nexus', entityName: 'Nexus Technologies' },
   ],
 };
 

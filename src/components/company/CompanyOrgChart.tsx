@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useAppState } from '@/context/AppContext';
-import { Company, taggedFiles } from '@/data/mockData';
-import { Building2, CheckCircle2, Paperclip, Search, FileText, X } from 'lucide-react';
+import { Company, taggedFiles, AuditStatus } from '@/data/mockData';
+import { Building2, CheckCircle2, Paperclip, Search, FileText, X, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusBadge: Record<string, string> = {
@@ -11,17 +11,11 @@ const statusBadge: Record<string, string> = {
   'Resolved': 'bg-green-100 text-green-800',
 };
 
+const allStatuses: AuditStatus[] = ['Pending Review', 'Discrepancy Identified', 'Clarification Requested', 'Resolved'];
+
 function FilePickerPopover({ companyId, companyName, onClose }: { companyId: string; companyName: string; onClose: () => void }) {
   const [search, setSearch] = useState('');
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [onClose]);
+  const ref = { current: null as HTMLDivElement | null };
 
   const filtered = taggedFiles.filter(f =>
     f.fileName.toLowerCase().includes(search.toLowerCase())
@@ -33,7 +27,7 @@ function FilePickerPopover({ companyId, companyName, onClose }: { companyId: str
   };
 
   return (
-    <div ref={ref} className="absolute top-full left-1/2 -translate-x-1/2 z-50 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg p-2">
+    <div ref={el => { ref.current = el; }} className="absolute top-full left-1/2 -translate-x-1/2 z-50 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg p-2">
       <div className="flex items-center gap-2 mb-2">
         <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
         <input
@@ -70,9 +64,10 @@ function FilePickerPopover({ companyId, companyName, onClose }: { companyId: str
   );
 }
 
-function OrgNodeCard({ company }: { company: Company }) {
-  const { attachReport } = useAppState();
+function OrgNodeCard({ company, isHighlighted }: { company: Company; isHighlighted?: boolean }) {
+  const { attachReport, updateEntityStatus } = useAppState();
   const [showFilePicker, setShowFilePicker] = useState(false);
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
 
   const handleAttachReport = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -85,16 +80,41 @@ function OrgNodeCard({ company }: { company: Company }) {
     setShowFilePicker(prev => !prev);
   };
 
+  const handleEntityStatusChange = (status: AuditStatus) => {
+    updateEntityStatus(company.id, status);
+    setShowStatusMenu(false);
+    toast.success(`Entity status updated to "${status}"`);
+  };
+
   return (
-    <div className="relative bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-3 min-w-[200px] max-w-[240px] hover:shadow-md transition-all group">
+    <div className={`relative bg-white border rounded-lg shadow-sm px-4 py-3 min-w-[200px] max-w-[240px] hover:shadow-md transition-all group ${isHighlighted ? 'border-blue-400 ring-2 ring-blue-100' : 'border-gray-200'}`}>
       <div className="flex items-center gap-2 mb-1.5">
         <Building2 className="h-4 w-4 text-blue-500 shrink-0" />
         <span className="text-sm font-semibold text-gray-900 truncate">{company.name}</span>
       </div>
-      <div className="flex items-center gap-2 mb-2">
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge[company.status] || 'bg-gray-100 text-gray-800'}`}>
-          {company.status}
-        </span>
+      {/* Entity-level status dropdown */}
+      <div className="relative mb-2">
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowStatusMenu(!showStatusMenu); }}
+          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer ${statusBadge[company.entityStatus || company.status] || 'bg-gray-100 text-gray-800'}`}
+        >
+          {company.entityStatus || company.status}
+          <ChevronDown className="h-3 w-3" />
+        </button>
+        {showStatusMenu && (
+          <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[180px]">
+            {allStatuses.map(s => (
+              <button
+                key={s}
+                onClick={(e) => { e.stopPropagation(); handleEntityStatusChange(s); }}
+                className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-2 ${s === (company.entityStatus || company.status) ? 'font-semibold' : ''}`}
+              >
+                <span className={`w-2 h-2 rounded-full ${s === 'Pending Review' ? 'bg-yellow-400' : s === 'Discrepancy Identified' ? 'bg-red-400' : s === 'Clarification Requested' ? 'bg-blue-400' : 'bg-green-400'}`} />
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <div className="text-xs text-gray-500 mb-2">{company.auditPeriod}</div>
       <div className="flex items-center justify-between gap-1">
@@ -128,12 +148,12 @@ function OrgNodeCard({ company }: { company: Company }) {
   );
 }
 
-function TreeNode({ company, companies }: { company: Company; companies: Company[] }) {
+function TreeNode({ company, companies, highlightedEntityId }: { company: Company; companies: Company[]; highlightedEntityId?: string }) {
   const children = companies.filter(c => c.parentId === company.id);
 
   return (
     <div className="flex flex-col items-center">
-      <OrgNodeCard company={company} />
+      <OrgNodeCard company={company} isHighlighted={highlightedEntityId === company.id} />
       {children.length > 0 && (
         <>
           <div className="w-0.5 h-6 bg-gray-300" />
@@ -146,7 +166,7 @@ function TreeNode({ company, companies }: { company: Company; companies: Company
             {children.map(child => (
               <div key={child.id} className="flex flex-col items-center">
                 <div className="w-0.5 h-6 bg-gray-300" />
-                <TreeNode company={child} companies={companies} />
+                <TreeNode company={child} companies={companies} highlightedEntityId={highlightedEntityId} />
               </div>
             ))}
           </div>
@@ -156,7 +176,7 @@ function TreeNode({ company, companies }: { company: Company; companies: Company
   );
 }
 
-export function CompanyOrgChart({ companyId }: { companyId: string }) {
+export function CompanyOrgChart({ companyId, selectedEntityId }: { companyId: string; selectedEntityId?: string }) {
   const { companies } = useAppState();
   const company = companies.find(c => c.id === companyId);
   if (!company) return null;
@@ -171,7 +191,7 @@ export function CompanyOrgChart({ companyId }: { companyId: string }) {
   return (
     <div className="p-6 overflow-auto h-full">
       <div className="inline-flex justify-center min-w-full">
-        <TreeNode company={root} companies={companies} />
+        <TreeNode company={root} companies={companies} highlightedEntityId={selectedEntityId} />
       </div>
     </div>
   );
