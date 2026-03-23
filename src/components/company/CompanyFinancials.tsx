@@ -43,7 +43,7 @@ export function CompanyFinancials({ companyId, selectedEntityId }: { companyId: 
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {rows.map((row, idx) => {
-                  const v = calculateVariance(row.Source_Value, row.Extracted_Value);
+                  const v = calculateVariance(row.Source_Value, row.Extracted_Value, varianceThreshold);
                   return (
                     <tr key={`${row.Field_Name}-${idx}`} className={`${v.isFlagged ? 'bg-red-50' : 'hover:bg-gray-50'} transition-all`}>
                       <td className="px-4 py-3 text-sm text-gray-900">{row.Field_Name}</td>
