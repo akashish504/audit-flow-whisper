@@ -107,7 +107,7 @@ function OrgNodeCard({ company, isHighlighted }: { company: Company; isHighlight
         <span className="text-sm font-semibold text-gray-900 truncate">{company.name}</span>
       </div>
       {/* Entity-level status dropdown */}
-      <div className="relative mb-2">
+      <div className="relative mb-2" ref={statusMenuRef}>
         <button
           onClick={(e) => { e.stopPropagation(); setShowStatusMenu(!showStatusMenu); }}
           className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer ${statusBadge[company.entityStatus || company.status] || 'bg-gray-100 text-gray-800'}`}
