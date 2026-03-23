@@ -13,7 +13,7 @@ import { FilePreviewOverlay } from '@/components/company/FilePreviewOverlay';
 import { CompanyFiles } from '@/components/company/CompanyFiles';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { entityFiles } from '@/data/mockData';
-import type { AuditStatus, EntityFile } from '@/data/mockData';
+import type { AuditStatus } from '@/data/mockData';
 import { toast } from 'sonner';
 
 const statusBadge: Record<string, string> = {
