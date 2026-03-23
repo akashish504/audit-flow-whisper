@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppState } from '@/context/AppContext';
-import { ArrowLeft, Building2, ChevronDown, FileText } from 'lucide-react';
+import { ArrowLeft, Building2, ChevronDown } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CompanyOrgChart } from '@/components/company/CompanyOrgChart';
 import { CompanyFinancials } from '@/components/company/CompanyFinancials';
@@ -9,10 +9,10 @@ import { CompanyDiscrepancies } from '@/components/company/CompanyDiscrepancies'
 import { CompanyEmailThreads } from '@/components/company/CompanyEmailThreads';
 import { CompanyEmailDraft } from '@/components/company/CompanyEmailDraft';
 import { CompanyAuditLogs } from '@/components/company/CompanyAuditLogs';
-import { FilePreviewOverlay } from '@/components/company/FilePreviewOverlay';
+import { CompanyFiles } from '@/components/company/CompanyFiles';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { entityFiles } from '@/data/mockData';
-import type { AuditStatus, EntityFile } from '@/data/mockData';
+import type { AuditStatus } from '@/data/mockData';
 import { toast } from 'sonner';
 
 const statusBadge: Record<string, string> = {
@@ -31,7 +31,6 @@ export default function CompanyDetailPage() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [selectedFileId, setSelectedFileId] = useState<string>('all');
   const [pendingStatus, setPendingStatus] = useState<AuditStatus | null>(null);
-  const [previewFile, setPreviewFile] = useState<EntityFile | null>(null);
   const statusRef = useRef<HTMLDivElement>(null);
 
   // Close status dropdown on outside click
@@ -60,13 +59,8 @@ export default function CompanyDetailPage() {
     f.reviewPeriod === company.auditPeriod
   );
 
-  // Group files by entity
-  const filesByEntity = companyFiles.reduce<Record<string, EntityFile[]>>((acc, f) => {
-    const key = f.entityId;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(f);
-    return acc;
-  }, {});
+
+
 
   const handleStatusClick = (status: AuditStatus) => {
     setPendingStatus(status);
@@ -164,26 +158,6 @@ export default function CompanyDetailPage() {
           </div>
         </div>
 
-        {/* Files grouped by entity */}
-        {Object.keys(filesByEntity).length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {Object.entries(filesByEntity).map(([entityId, files]) => (
-              <div key={entityId} className="flex items-center gap-1">
-                <span className="text-[10px] text-gray-400 uppercase tracking-wider mr-1">{files[0].entityName}:</span>
-                {files.map(f => (
-                  <button
-                    key={f.id}
-                    onClick={() => setPreviewFile(f)}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-200 transition-all"
-                  >
-                    <FileText className="h-3 w-3 text-red-400" />
-                    <span className="truncate max-w-[140px]">{f.fileName}</span>
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Status confirmation dialog */}
@@ -202,9 +176,6 @@ export default function CompanyDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* File preview overlay */}
-      <FilePreviewOverlay file={previewFile} open={!!previewFile} onClose={() => setPreviewFile(null)} />
-
       {/* Tabs */}
       <Tabs defaultValue="org-chart" className="flex-1 flex flex-col overflow-hidden">
         <div className="px-6 pt-3 border-b border-gray-200 bg-white shrink-0">
@@ -216,6 +187,7 @@ export default function CompanyDetailPage() {
               { value: 'email-draft', label: 'Email Draft & Sending' },
               { value: 'email-threads', label: 'Email Threads' },
               { value: 'audit-logs', label: 'Audit Logs' },
+              { value: 'files', label: 'Files' },
             ].map(tab => (
               <TabsTrigger
                 key={tab.value}
@@ -239,6 +211,7 @@ export default function CompanyDetailPage() {
           <TabsContent value="email-draft" className="h-full mt-0"><CompanyEmailDraft companyId={company.id} /></TabsContent>
           <TabsContent value="email-threads" className="h-full mt-0"><CompanyEmailThreads companyId={company.id} /></TabsContent>
           <TabsContent value="audit-logs" className="h-full mt-0"><CompanyAuditLogs companyId={company.id} /></TabsContent>
+          <TabsContent value="files" className="h-full mt-0"><CompanyFiles companyId={company.id} /></TabsContent>
         </div>
       </Tabs>
     </div>
