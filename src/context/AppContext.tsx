@@ -30,8 +30,8 @@ interface AppState {
   companies: Company[];
   emails: EmailThread[];
   discrepancies: DiscrepancyItem[];
-  varianceThreshold: number;
-  setVarianceThreshold: (t: number) => void;
+  fieldThresholds: Record<string, number>;
+  setFieldThresholds: (thresholds: Record<string, number>) => void;
   selectedCompanyId: string | null;
   setSelectedCompanyId: (id: string | null) => void;
   addEmail: (email: EmailThread) => void;
