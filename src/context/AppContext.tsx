@@ -1,12 +1,21 @@
 import React, { createContext, useContext, useState, type ReactNode } from 'react';
 import { Company, AuditPeriod, companies as initialCompanies, EmailThread, emailThreads as initialEmails, DiscrepancyItem, reconciliationData, calculateVariance } from '@/data/mockData';
 
-// Build initial discrepancies from reconciliation data
-function buildInitialDiscrepancies(): DiscrepancyItem[] {
+// Extract all unique field names to build default thresholds
+const allFieldNames = new Set<string>();
+for (const fields of Object.values(reconciliationData)) {
+  for (const f of fields) allFieldNames.add(f.Field_Name);
+}
+const DEFAULT_THRESHOLD = 0.005;
+const defaultFieldThresholds: Record<string, number> = {};
+allFieldNames.forEach(name => { defaultFieldThresholds[name] = DEFAULT_THRESHOLD; });
+
+function buildDiscrepancies(thresholds: Record<string, number>): DiscrepancyItem[] {
   const items: DiscrepancyItem[] = [];
   for (const [companyId, fields] of Object.entries(reconciliationData)) {
     for (const field of fields) {
-      const v = calculateVariance(field.Source_Value, field.Extracted_Value);
+      const t = thresholds[field.Field_Name] ?? DEFAULT_THRESHOLD;
+      const v = calculateVariance(field.Source_Value, field.Extracted_Value, t);
       if (v.isFlagged) {
         items.push({
           id: `disc-${companyId}-${field.entityId || companyId}-${field.Field_Name}`,
