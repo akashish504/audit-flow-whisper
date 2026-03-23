@@ -33,8 +33,8 @@ export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
   if (flagged.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2">
-        <AlertTriangle className="h-8 w-8 text-muted-foreground/30" />
-        <p className="text-sm text-muted-foreground">No discrepancies found (threshold: 0.5%)</p>
+        <AlertTriangle className="h-8 w-8 text-gray-300" />
+        <p className="text-sm text-gray-500">No discrepancies found (threshold: 0.5%)</p>
       </div>
     );
   }
@@ -42,21 +42,23 @@ export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
   return (
     <div className="p-6">
       <div className="mb-4">
-        <p className="text-xs text-muted-foreground">{flagged.length} discrepanc{flagged.length === 1 ? 'y' : 'ies'} exceeding 0.5% threshold</p>
+        <p className="text-xs text-gray-500">{flagged.length} discrepanc{flagged.length === 1 ? 'y' : 'ies'} exceeding 0.5% threshold</p>
       </div>
 
       <div className="space-y-3">
         {flagged.map(row => {
           const v = calculateVariance(row.Source_Value, row.Extracted_Value);
           return (
-            <div key={row.Field_Name} className="bg-card border border-destructive/20 rounded-lg p-4 flex items-center justify-between">
+            <div key={row.Field_Name} className="bg-white border border-red-200 rounded-lg p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-all">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <AlertTriangle className="h-4 w-4 text-destructive" />
-                  <span className="text-sm font-semibold text-foreground">{row.Field_Name}</span>
-                  <span className="text-xs font-mono text-destructive font-semibold">{(v.percent * 100).toFixed(2)}%</span>
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <span className="text-sm font-semibold text-gray-900">{row.Field_Name}</span>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    {(v.percent * 100).toFixed(2)}%
+                  </span>
                 </div>
-                <div className="text-xs text-muted-foreground space-x-4">
+                <div className="text-xs text-gray-500 space-x-4">
                   <span>Source: {formatCurrency(row.Source_Value)}</span>
                   <span>Extracted: {formatCurrency(row.Extracted_Value)}</span>
                   <span>Diff: {formatCurrency(v.diff)}</span>
@@ -64,7 +66,7 @@ export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
               </div>
               <button
                 onClick={() => handleFlag(row.Field_Name, row.Source_Value, row.Extracted_Value)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-destructive/10 text-destructive border border-destructive/30 rounded-sm press-effect hover:bg-destructive/20 transition-quart"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium text-xs border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
                 <Flag className="h-3 w-3" /> Flag & Draft Email
               </button>
