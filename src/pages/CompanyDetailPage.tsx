@@ -32,7 +32,6 @@ export default function CompanyDetailPage() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [selectedFileId, setSelectedFileId] = useState<string>('all');
   const [pendingStatus, setPendingStatus] = useState<AuditStatus | null>(null);
-  const [previewFile, setPreviewFile] = useState<EntityFile | null>(null);
   const statusRef = useRef<HTMLDivElement>(null);
 
   // Close status dropdown on outside click
