@@ -252,7 +252,7 @@ export const calculateVariance = (source: number, extracted: number, threshold =
   return { diff, percent, isFlagged };
 };
 
-export type ReviewStage = 'Scoped In' | 'Scoped Out' | 'Overdue' | 'In Progress' | 'Completed';
+export type ReviewStage = 'Scoped In' | 'Scoped Out' | 'Overdue' | 'In Review' | 'Completed';
 
 export interface ReviewCycle {
   id: string;
