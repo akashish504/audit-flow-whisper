@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/sidebar';
 
 const navItems = [
-  { title: 'Portfolio Companies', url: '/', icon: Building2 },
+  { title: 'In Review Tracker', url: '/', icon: Building2 },
+  { title: 'Review Cycle Adjustments', url: '/review-cycle-adjustments', icon: Building2 },
   { title: 'Email Templates', url: '/email-templates', icon: Mail },
   { title: 'File Tagging', url: '/file-tagging', icon: FileText },
   { title: 'Email Tagging', url: '/email-tagging', icon: Tag },
