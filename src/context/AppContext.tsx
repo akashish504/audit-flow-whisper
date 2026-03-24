@@ -248,7 +248,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       selectedCompanyId, setSelectedCompanyId,
       addEmail, attachReport, updateCompanyStatus, updateEntityStatus,
       addAuditPeriod, setActiveAuditPeriod, bulkCreateReviewCycles,
-      archiveCompany, unarchiveCompany, updateDiscrepancy, addCompany,
+      updateDiscrepancy, addCompany,
       rcCycles, rcEntries, rcLogs,
       addReviewCycle, addOrUpdateRCEntries, updateRCEntryStage,
     }}>
