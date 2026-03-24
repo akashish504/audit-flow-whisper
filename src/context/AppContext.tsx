@@ -54,6 +54,13 @@ interface AppState {
   unarchiveCompany: (companyId: string) => void;
   updateDiscrepancy: (id: string, updates: Partial<DiscrepancyItem>) => void;
   addCompany: (name: string, contactName: string, contactEmail: string) => void;
+  // Review Cycle Adjustments
+  rcCycles: ReviewCycle[];
+  rcEntries: ReviewCompanyEntry[];
+  rcLogs: ReviewCycleLog[];
+  addReviewCycle: (label: string) => void;
+  addOrUpdateRCEntries: (cycleId: string, entries: Omit<ReviewCompanyEntry, 'id' | 'reviewCycleId' | 'updatedAt'>[]) => void;
+  updateRCEntryStage: (entryId: string, stage: ReviewStage) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
