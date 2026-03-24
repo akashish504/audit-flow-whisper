@@ -250,6 +250,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addEmail, attachReport, updateCompanyStatus, updateEntityStatus,
       addAuditPeriod, setActiveAuditPeriod, bulkCreateReviewCycles,
       archiveCompany, unarchiveCompany, updateDiscrepancy, addCompany,
+      rcCycles, rcEntries, rcLogs,
+      addReviewCycle, addOrUpdateRCEntries, updateRCEntryStage,
     }}>
       {children}
     </AppContext.Provider>
