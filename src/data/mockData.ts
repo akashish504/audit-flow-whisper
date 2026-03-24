@@ -252,7 +252,7 @@ export const calculateVariance = (source: number, extracted: number, threshold =
   return { diff, percent, isFlagged };
 };
 
-export type ReviewStage = 'Scoped In' | 'Scoped Out' | 'Overdue' | 'In Progress' | 'Completed';
+export type ReviewStage = 'Scoped In' | 'Scoped Out' | 'Overdue' | 'In Review' | 'Completed';
 
 export interface ReviewCycle {
   id: string;
@@ -282,23 +282,33 @@ export interface ReviewCycleLog {
 export const reviewCycles: ReviewCycle[] = [
   { id: 'rc-1', label: 'CY 24 - FY 25', createdAt: '2025-01-01T00:00:00Z' },
   { id: 'rc-2', label: 'CY 23 - FY 24', createdAt: '2024-01-01T00:00:00Z' },
+  { id: 'rc-3', label: 'CY 22 - FY 23', createdAt: '2023-01-01T00:00:00Z' },
 ];
 
 export const reviewCompanyEntries: ReviewCompanyEntry[] = [
-  { id: 'rce-1', companyName: 'Acme Corp', reviewCycleId: 'rc-1', stage: 'In Progress', contactName: 'James Chen', contactEmail: 'j.chen@acmecorp.com', updatedAt: '2025-03-15T00:00:00Z' },
+  { id: 'rce-1', companyName: 'Acme Corp', reviewCycleId: 'rc-1', stage: 'In Review', contactName: 'James Chen', contactEmail: 'j.chen@acmecorp.com', updatedAt: '2025-03-15T00:00:00Z' },
   { id: 'rce-2', companyName: 'Nexus Technologies', reviewCycleId: 'rc-1', stage: 'Scoped In', contactName: 'Maria Rodriguez', contactEmail: 'm.rodriguez@nexustech.io', updatedAt: '2025-03-10T00:00:00Z' },
   { id: 'rce-3', companyName: 'Meridian Health', reviewCycleId: 'rc-1', stage: 'Overdue', contactName: 'Sarah Johnson', contactEmail: 's.johnson@meridianhealth.com', updatedAt: '2025-02-20T00:00:00Z' },
   { id: 'rce-4', companyName: 'Apex Industries', reviewCycleId: 'rc-1', stage: 'Completed', contactName: 'Tom Harris', contactEmail: 't.harris@apex.com', updatedAt: '2025-03-01T00:00:00Z' },
-  { id: 'rce-5', companyName: 'Acme Corp', reviewCycleId: 'rc-2', stage: 'Completed', contactName: 'James Chen', contactEmail: 'j.chen@acmecorp.com', updatedAt: '2024-12-15T00:00:00Z' },
-  { id: 'rce-6', companyName: 'Nexus Technologies', reviewCycleId: 'rc-2', stage: 'Completed', contactName: 'Maria Rodriguez', contactEmail: 'm.rodriguez@nexustech.io', updatedAt: '2024-12-10T00:00:00Z' },
-  { id: 'rce-7', companyName: 'Meridian Health', reviewCycleId: 'rc-2', stage: 'Scoped Out', contactName: 'Sarah Johnson', contactEmail: 's.johnson@meridianhealth.com', updatedAt: '2024-11-20T00:00:00Z' },
+  { id: 'rce-5', companyName: 'Pinnacle Logistics', reviewCycleId: 'rc-1', stage: 'In Review', contactName: 'David Kim', contactEmail: 'd.kim@pinnacle.com', updatedAt: '2025-03-12T00:00:00Z' },
+  { id: 'rce-6', companyName: 'Summit Finance', reviewCycleId: 'rc-1', stage: 'Overdue', contactName: 'Lisa Wang', contactEmail: 'l.wang@summitfin.com', updatedAt: '2025-02-28T00:00:00Z' },
+  { id: 'rce-7', companyName: 'Acme Corp', reviewCycleId: 'rc-2', stage: 'Completed', contactName: 'James Chen', contactEmail: 'j.chen@acmecorp.com', updatedAt: '2024-12-15T00:00:00Z' },
+  { id: 'rce-8', companyName: 'Nexus Technologies', reviewCycleId: 'rc-2', stage: 'Completed', contactName: 'Maria Rodriguez', contactEmail: 'm.rodriguez@nexustech.io', updatedAt: '2024-12-10T00:00:00Z' },
+  { id: 'rce-9', companyName: 'Meridian Health', reviewCycleId: 'rc-2', stage: 'Scoped Out', contactName: 'Sarah Johnson', contactEmail: 's.johnson@meridianhealth.com', updatedAt: '2024-11-20T00:00:00Z' },
+  { id: 'rce-10', companyName: 'Apex Industries', reviewCycleId: 'rc-2', stage: 'Completed', contactName: 'Tom Harris', contactEmail: 't.harris@apex.com', updatedAt: '2024-11-15T00:00:00Z' },
+  { id: 'rce-11', companyName: 'Pinnacle Logistics', reviewCycleId: 'rc-2', stage: 'In Review', contactName: 'David Kim', contactEmail: 'd.kim@pinnacle.com', updatedAt: '2024-12-01T00:00:00Z' },
+  { id: 'rce-12', companyName: 'Acme Corp', reviewCycleId: 'rc-3', stage: 'Completed', contactName: 'James Chen', contactEmail: 'j.chen@acmecorp.com', updatedAt: '2023-12-15T00:00:00Z' },
+  { id: 'rce-13', companyName: 'Nexus Technologies', reviewCycleId: 'rc-3', stage: 'Completed', contactName: 'Maria Rodriguez', contactEmail: 'm.rodriguez@nexustech.io', updatedAt: '2023-12-10T00:00:00Z' },
+  { id: 'rce-14', companyName: 'Summit Finance', reviewCycleId: 'rc-3', stage: 'Scoped Out', contactName: 'Lisa Wang', contactEmail: 'l.wang@summitfin.com', updatedAt: '2023-11-20T00:00:00Z' },
 ];
 
 export const reviewCycleLogs: ReviewCycleLog[] = [
   { id: 'rcl-1', action: 'Cycle Created', timestamp: '2025-01-01T00:00:00Z', user: 'admin@vantagecap.com', details: 'Review cycle CY 24 - FY 25 created', reviewCycleId: 'rc-1' },
-  { id: 'rcl-2', action: 'CSV Uploaded', timestamp: '2025-01-05T10:00:00Z', user: 'admin@vantagecap.com', details: '4 companies uploaded for CY 24 - FY 25', reviewCycleId: 'rc-1' },
-  { id: 'rcl-3', action: 'Stage Changed', timestamp: '2025-03-15T00:00:00Z', user: 'audit@vantagecap.com', details: 'Acme Corp stage changed to In Progress', reviewCycleId: 'rc-1' },
+  { id: 'rcl-2', action: 'CSV Uploaded', timestamp: '2025-01-05T10:00:00Z', user: 'admin@vantagecap.com', details: '6 companies uploaded for CY 24 - FY 25', reviewCycleId: 'rc-1' },
+  { id: 'rcl-3', action: 'Stage Changed', timestamp: '2025-03-15T00:00:00Z', user: 'audit@vantagecap.com', details: 'Acme Corp stage changed to In Review', reviewCycleId: 'rc-1' },
   { id: 'rcl-4', action: 'Cycle Created', timestamp: '2024-01-01T00:00:00Z', user: 'admin@vantagecap.com', details: 'Review cycle CY 23 - FY 24 created', reviewCycleId: 'rc-2' },
+  { id: 'rcl-5', action: 'CSV Uploaded', timestamp: '2024-01-05T10:00:00Z', user: 'admin@vantagecap.com', details: '5 companies uploaded for CY 23 - FY 24', reviewCycleId: 'rc-2' },
+  { id: 'rcl-6', action: 'Cycle Created', timestamp: '2023-01-01T00:00:00Z', user: 'admin@vantagecap.com', details: 'Review cycle CY 22 - FY 23 created', reviewCycleId: 'rc-3' },
 ];
 
 export const formatCurrency = (value: number): string => {
