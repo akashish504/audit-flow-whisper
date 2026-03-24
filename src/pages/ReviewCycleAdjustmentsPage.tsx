@@ -1,23 +1,23 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { ReviewStage } from '@/data/mockData';
-import { Plus, Upload, Download, Search, ChevronDown } from 'lucide-react';
+import { Plus, Upload, Download, Search, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
-const STAGES: ReviewStage[] = ['Scoped In', 'Scoped Out', 'Overdue', 'In Progress', 'Completed'];
+const STAGES: ReviewStage[] = ['Scoped In', 'Scoped Out', 'Overdue', 'In Review', 'Completed'];
 
 const stageBadge = (stage: ReviewStage) => {
   const map: Record<ReviewStage, string> = {
     'Scoped In': 'bg-blue-100 text-blue-800',
     'Scoped Out': 'bg-gray-100 text-gray-800',
     'Overdue': 'bg-red-100 text-red-800',
-    'In Progress': 'bg-yellow-100 text-yellow-800',
+    'In Review': 'bg-yellow-100 text-yellow-800',
     'Completed': 'bg-green-100 text-green-800',
   };
   return map[stage];
 };
 
-type CompanyFilter = 'all' | 'overdue' | 'in-progress' | 'completed';
+type CompanyFilter = 'all' | 'overdue' | 'in-review' | 'completed';
 
 const ReviewCycleAdjustmentsPage: React.FC = () => {
   const { rcCycles, rcEntries, rcLogs, addReviewCycle, addOrUpdateRCEntries, updateRCEntryStage } = useAppState();
@@ -26,6 +26,8 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
   // Cycle Adjustments state
   const [newCY, setNewCY] = useState('');
   const [newFY, setNewFY] = useState('');
+  const [cycleConfirmDialog, setCycleConfirmDialog] = useState(false);
+  const [cycleCheckbox, setCycleCheckbox] = useState(false);
 
   // Companies state
   const latestCycleId = rcCycles.length > 0 ? rcCycles[0].id : '';
@@ -35,6 +37,10 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
   const [confirmDialog, setConfirmDialog] = useState<{ entryId: string; newStage: ReviewStage } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // CSV cycle selection dialog
+  const [csvData, setCsvData] = useState<{ companyName: string; stage: ReviewStage; contactName: string; contactEmail: string }[] | null>(null);
+  const [csvCycleId, setCsvCycleId] = useState(latestCycleId);
+
   const filteredEntries = useMemo(() => {
     let entries = rcEntries;
 
@@ -43,8 +49,8 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
     } else if (companyFilter === 'overdue') {
       entries = entries.filter(e => e.stage === 'Overdue');
       if (selectedCycleId) entries = entries.filter(e => e.reviewCycleId === selectedCycleId);
-    } else if (companyFilter === 'in-progress') {
-      entries = entries.filter(e => e.stage === 'In Progress');
+    } else if (companyFilter === 'in-review') {
+      entries = entries.filter(e => e.stage === 'In Review');
       if (selectedCycleId) entries = entries.filter(e => e.reviewCycleId === selectedCycleId);
     } else if (companyFilter === 'completed') {
       entries = entries.filter(e => e.stage === 'Completed' && e.reviewCycleId === selectedCycleId);
@@ -57,13 +63,21 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
     return entries;
   }, [rcEntries, selectedCycleId, companyFilter, searchTerm]);
 
-  const handleAddCycle = () => {
+  const handleAddCycleClick = () => {
     if (!newCY || !newFY) { toast.error('Please fill in both CY and FY values'); return; }
     const label = `CY ${newCY} - FY ${newFY}`;
     if (rcCycles.some(c => c.label === label)) { toast.error('This review cycle already exists'); return; }
+    setCycleCheckbox(false);
+    setCycleConfirmDialog(true);
+  };
+
+  const handleConfirmAddCycle = () => {
+    const label = `CY ${newCY} - FY ${newFY}`;
     addReviewCycle(label);
     setNewCY('');
     setNewFY('');
+    setCycleConfirmDialog(false);
+    setCycleCheckbox(false);
     toast.success(`Review cycle ${label} created`);
   };
 
@@ -92,15 +106,22 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
         };
       }).filter(e => e.companyName);
 
-      addOrUpdateRCEntries(selectedCycleId, entries);
-      toast.success(`${entries.length} companies uploaded/updated`);
+      setCsvData(entries);
+      setCsvCycleId(selectedCycleId || latestCycleId);
     };
     reader.readAsText(file);
     e.target.value = '';
   };
 
+  const handleConfirmCSVUpload = () => {
+    if (!csvData || !csvCycleId) return;
+    addOrUpdateRCEntries(csvCycleId, csvData);
+    toast.success(`${csvData.length} companies uploaded/updated`);
+    setCsvData(null);
+  };
+
   const handleSampleCSV = () => {
-    const csv = 'company_name,stage,contact_name,contact_email\nSample Corp,Scoped In,John Doe,john@sample.com\nAnother Inc,In Progress,Jane Smith,jane@another.com';
+    const csv = 'company_name,stage,contact_name,contact_email\nSample Corp,Scoped In,John Doe,john@sample.com\nAnother Inc,In Review,Jane Smith,jane@another.com';
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -115,6 +136,8 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
     { key: 'cycles' as const, label: 'Cycle Adjustments' },
     { key: 'logs' as const, label: 'Logs' },
   ];
+
+  const showAllCyclesDefault = companyFilter === 'overdue' || companyFilter === 'in-review';
 
   return (
     <div className="h-full overflow-auto bg-gray-50 p-6">
@@ -145,12 +168,19 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
             {([
               { key: 'all', label: 'All Companies' },
               { key: 'overdue', label: 'Overdue' },
-              { key: 'in-progress', label: 'In Progress' },
+              { key: 'in-review', label: 'In Review' },
               { key: 'completed', label: 'Completed' },
             ] as { key: CompanyFilter; label: string }[]).map(f => (
               <button
                 key={f.key}
-                onClick={() => setCompanyFilter(f.key)}
+                onClick={() => {
+                  setCompanyFilter(f.key);
+                  if (f.key === 'overdue' || f.key === 'in-review') {
+                    setSelectedCycleId('');
+                  } else if (!selectedCycleId) {
+                    setSelectedCycleId(latestCycleId);
+                  }
+                }}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   companyFilter === f.key
                     ? 'bg-blue-500 text-white'
@@ -179,14 +209,8 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
               onChange={e => setSelectedCycleId(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             >
-              {companyFilter === 'overdue' || companyFilter === 'in-progress' ? (
-                <>
-                  <option value="">All Cycles</option>
-                  {rcCycles.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                </>
-              ) : (
-                rcCycles.map(c => <option key={c.id} value={c.id}>{c.label}</option>)
-              )}
+              {showAllCyclesDefault && <option value="">All Cycles</option>}
+              {rcCycles.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
             <button onClick={handleSampleCSV} className="px-4 py-2 rounded-lg font-medium transition-all border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 text-sm flex items-center gap-1.5">
               <Download className="h-4 w-4" /> Sample CSV
@@ -206,7 +230,7 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Stage</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  {(companyFilter === 'overdue' || companyFilter === 'in-progress') && (
+                  {showAllCyclesDefault && (
                     <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Review Cycle</th>
                   )}
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
@@ -231,7 +255,7 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">{entry.contactName}</td>
                       <td className="px-4 py-3 text-sm text-gray-500">{entry.contactEmail}</td>
-                      {(companyFilter === 'overdue' || companyFilter === 'in-progress') && (
+                      {showAllCyclesDefault && (
                         <td className="px-4 py-3 text-sm text-gray-500">{getCycleLabel(entry.reviewCycleId)}</td>
                       )}
                       <td className="px-4 py-3 text-sm text-gray-500">{new Date(entry.updatedAt).toLocaleDateString()}</td>
@@ -280,7 +304,7 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
                 className="w-16 px-3 py-2 border border-gray-300 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <button
-                onClick={handleAddCycle}
+                onClick={handleAddCycleClick}
                 className="px-4 py-2 rounded-lg font-medium transition-all bg-blue-500 text-white hover:bg-blue-600 text-sm flex items-center gap-1.5 ml-2"
               >
                 <Plus className="h-4 w-4" /> Add Cycle
@@ -359,7 +383,7 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Confirmation Dialog */}
+      {/* Stage Change Confirmation Dialog */}
       {confirmDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setConfirmDialog(null)}>
           <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
@@ -380,6 +404,78 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500 text-white hover:bg-blue-600"
               >
                 Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Cycle Confirmation Dialog */}
+      {cycleConfirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setCycleConfirmDialog(false)}>
+          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+              <h3 className="text-sm font-semibold text-gray-900">Confirm New Review Cycle</h3>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              You are about to create review cycle <span className="font-medium text-gray-900">CY {newCY} - FY {newFY}</span>. This action will add a new review period to the system.
+            </p>
+            <label className="flex items-start gap-2 mb-5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={cycleCheckbox}
+                onChange={e => setCycleCheckbox(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">
+                I am fully aware that this action will create a new review period in the system and cannot be undone.
+              </span>
+            </label>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setCycleConfirmDialog(false)} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAddCycle}
+                disabled={!cycleCheckbox}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  cycleCheckbox
+                    ? 'bg-blue-500 text-white hover:bg-blue-600'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                Confirm & Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSV Cycle Selection Dialog */}
+      {csvData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setCsvData(null)}>
+          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">Attach CSV to Review Cycle</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              <span className="font-medium text-gray-900">{csvData.length} companies</span> parsed from the CSV. Select which review cycle to attach them to:
+            </p>
+            <select
+              value={csvCycleId}
+              onChange={e => setCsvCycleId(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-5"
+            >
+              {rcCycles.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </select>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setCsvData(null)} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmCSVUpload}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500 text-white hover:bg-blue-600"
+              >
+                Upload
               </button>
             </div>
           </div>
