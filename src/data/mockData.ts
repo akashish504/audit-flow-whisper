@@ -20,6 +20,7 @@ export interface Company {
   hasAuditReport: boolean;
   isArchived?: boolean;
   entityStatus?: AuditStatus;
+  geolocation?: string;
 }
 
 export interface ReconciliationField {
