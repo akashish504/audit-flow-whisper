@@ -14,21 +14,6 @@ const statusBadge: Record<string, string> = {
 
 const allStatuses: AuditStatus[] = ['Pending Review', 'Discrepancy Identified', 'Clarification Requested', 'Resolved'];
 
-function findMainCompany(company: Company, allCompanies: Company[]): Company | undefined {
-  // Walk up the tree to find the company whose parentId is the root (holding)
-  let current = company;
-  while (current.parentId) {
-    const parent = allCompanies.find(c => c.id === current.parentId);
-    if (!parent) break;
-    if (parent.parentId === null) {
-      // current's parent is root, so current is the main company
-      return current;
-    }
-    current = parent;
-  }
-  return undefined;
-}
-
 function FilePickerPopover({ companyId, companyName, onClose }: { companyId: string; companyName: string; onClose: () => void }) {
   const [search, setSearch] = useState('');
 
@@ -79,12 +64,12 @@ function FilePickerPopover({ companyId, companyName, onClose }: { companyId: str
   );
 }
 
-function OrgNodeCard({ company, isHighlighted, mainCompany }: { company: Company; isHighlighted?: boolean; mainCompany?: Company }) {
+function OrgNodeCard({ company, isHighlighted, portfolioCompany }: { company: Company; isHighlighted?: boolean; portfolioCompany?: Company }) {
   const { attachReport, updateEntityStatus, updateCompanyStatus } = useAppState();
   const [showFilePicker, setShowFilePicker] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<AuditStatus | null>(null);
-  const [alsoUpdateMain, setAlsoUpdateMain] = useState(false);
+  const [alsoUpdatePortfolio, setAlsoUpdatePortfolio] = useState(false);
   const statusMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -110,19 +95,20 @@ function OrgNodeCard({ company, isHighlighted, mainCompany }: { company: Company
   const confirmEntityStatusChange = () => {
     if (!pendingStatus) return;
     updateEntityStatus(company.id, pendingStatus);
-    if (alsoUpdateMain && mainCompany) {
-      updateCompanyStatus(mainCompany.id, pendingStatus);
-      toast.success(`Entity and ${mainCompany.name} status updated to "${pendingStatus}"`);
+
+    if (alsoUpdatePortfolio && portfolioCompany) {
+      updateCompanyStatus(portfolioCompany.id, pendingStatus);
+      toast.success(`Entity and ${portfolioCompany.name} status updated to "${pendingStatus}"`);
     } else {
       toast.success(`Entity status updated to "${pendingStatus}"`);
     }
+
     setPendingStatus(null);
-    setAlsoUpdateMain(false);
+    setAlsoUpdatePortfolio(false);
     setShowStatusMenu(false);
   };
 
-  // Show checkbox only if this entity is NOT the main company itself and a main company exists
-  const showMainCheckbox = !!mainCompany && mainCompany.id !== company.id;
+  const showPortfolioCheckbox = !!portfolioCompany && company.id !== portfolioCompany.id;
 
   return (
     <div className={`relative bg-white border rounded-lg shadow-sm px-4 py-3 min-w-[200px] max-w-[240px] hover:shadow-md transition-all group ${isHighlighted ? 'border-blue-400 ring-2 ring-blue-100' : 'border-gray-200'}`}>
@@ -130,14 +116,14 @@ function OrgNodeCard({ company, isHighlighted, mainCompany }: { company: Company
         <Building2 className="h-4 w-4 text-blue-500 shrink-0" />
         <span className="text-sm font-semibold text-gray-900 truncate">{company.name}</span>
       </div>
-      {/* Geolocation tag */}
+
       {company.geolocation && (
         <div className="flex items-center gap-1 mb-1.5">
           <MapPin className="h-3 w-3 text-gray-400" />
           <span className="text-[10px] text-gray-500">{company.geolocation}</span>
         </div>
       )}
-      {/* Entity-level status dropdown */}
+
       <div className="relative mb-2" ref={statusMenuRef}>
         <button
           onClick={(e) => { e.stopPropagation(); setShowStatusMenu(!showStatusMenu); }}
@@ -151,7 +137,12 @@ function OrgNodeCard({ company, isHighlighted, mainCompany }: { company: Company
             {allStatuses.map(s => (
               <button
                 key={s}
-                onClick={(e) => { e.stopPropagation(); setPendingStatus(s); setAlsoUpdateMain(false); setShowStatusMenu(false); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPendingStatus(s);
+                  setAlsoUpdatePortfolio(false);
+                  setShowStatusMenu(false);
+                }}
                 className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-2 ${s === (company.entityStatus || company.status) ? 'font-semibold' : ''}`}
               >
                 <span className={`w-2 h-2 rounded-full ${s === 'Pending Review' ? 'bg-yellow-400' : s === 'Discrepancy Identified' ? 'bg-red-400' : s === 'Clarification Requested' ? 'bg-blue-400' : 'bg-green-400'}`} />
@@ -161,6 +152,7 @@ function OrgNodeCard({ company, isHighlighted, mainCompany }: { company: Company
           </div>
         )}
       </div>
+
       <div className="flex items-center justify-between gap-1">
         <button
           onClick={handleAttachFile}
@@ -181,6 +173,7 @@ function OrgNodeCard({ company, isHighlighted, mainCompany }: { company: Company
           </button>
         )}
       </div>
+
       {showFilePicker && (
         <FilePickerPopover
           companyId={company.id}
@@ -189,8 +182,7 @@ function OrgNodeCard({ company, isHighlighted, mainCompany }: { company: Company
         />
       )}
 
-      {/* Confirmation dialog with optional main company update */}
-      <AlertDialog open={!!pendingStatus} onOpenChange={(open) => { if (!open) { setPendingStatus(null); setAlsoUpdateMain(false); } }}>
+      <AlertDialog open={!!pendingStatus} onOpenChange={(open) => { if (!open) { setPendingStatus(null); setAlsoUpdatePortfolio(false); } }}>
         <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-gray-900">Confirm Status Change</AlertDialogTitle>
@@ -199,16 +191,16 @@ function OrgNodeCard({ company, isHighlighted, mainCompany }: { company: Company
                 <p className="text-sm text-gray-500">
                   Change <span className="font-medium text-gray-700">{company.name}</span> status from <span className="font-medium text-gray-700">{company.entityStatus || company.status}</span> to <span className="font-medium text-gray-700">{pendingStatus}</span>?
                 </p>
-                {showMainCheckbox && (
+                {showPortfolioCheckbox && (
                   <label className="flex items-start gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={alsoUpdateMain}
-                      onChange={e => setAlsoUpdateMain(e.target.checked)}
+                      checked={alsoUpdatePortfolio}
+                      onChange={e => setAlsoUpdatePortfolio(e.target.checked)}
                       className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
                     />
                     <span className="text-sm text-gray-700">
-                      Also update <span className="font-medium">{mainCompany?.name}</span> status to <span className="font-medium">{pendingStatus}</span>
+                      Also update <span className="font-medium">{portfolioCompany?.name}</span> status to <span className="font-medium">{pendingStatus}</span>
                     </span>
                   </label>
                 )}
@@ -225,15 +217,12 @@ function OrgNodeCard({ company, isHighlighted, mainCompany }: { company: Company
   );
 }
 
-function TreeNode({ company, companies, highlightedEntityId, mainCompany }: { company: Company; companies: Company[]; highlightedEntityId?: string; mainCompany?: Company }) {
+function TreeNode({ company, companies, highlightedEntityId, portfolioCompany }: { company: Company; companies: Company[]; highlightedEntityId?: string; portfolioCompany?: Company }) {
   const children = companies.filter(c => c.parentId === company.id);
-
-  // Determine the main company for this node
-  const resolvedMain = mainCompany || findMainCompany(company, companies);
 
   return (
     <div className="flex flex-col items-center">
-      <OrgNodeCard company={company} isHighlighted={highlightedEntityId === company.id} mainCompany={resolvedMain} />
+      <OrgNodeCard company={company} isHighlighted={highlightedEntityId === company.id} portfolioCompany={portfolioCompany} />
       {children.length > 0 && (
         <>
           <div className="w-0.5 h-6 bg-border" />
@@ -250,7 +239,7 @@ function TreeNode({ company, companies, highlightedEntityId, mainCompany }: { co
                     }}
                   />
                 )}
-                <TreeNode company={child} companies={companies} highlightedEntityId={highlightedEntityId} mainCompany={resolvedMain} />
+                <TreeNode company={child} companies={companies} highlightedEntityId={highlightedEntityId} portfolioCompany={portfolioCompany} />
               </div>
             ))}
           </div>
@@ -262,10 +251,10 @@ function TreeNode({ company, companies, highlightedEntityId, mainCompany }: { co
 
 export function CompanyOrgChart({ companyId, selectedEntityId }: { companyId: string; selectedEntityId?: string }) {
   const { companies } = useAppState();
-  const company = companies.find(c => c.id === companyId);
-  if (!company) return null;
+  const portfolioCompany = companies.find(c => c.id === companyId);
+  if (!portfolioCompany) return null;
 
-  let root = company;
+  let root = portfolioCompany;
   while (root.parentId) {
     const parent = companies.find(c => c.id === root.parentId);
     if (!parent) break;
@@ -275,7 +264,12 @@ export function CompanyOrgChart({ companyId, selectedEntityId }: { companyId: st
   return (
     <div className="p-6 overflow-auto h-full">
       <div className="inline-flex justify-center min-w-full">
-        <TreeNode company={root} companies={companies} highlightedEntityId={selectedEntityId} />
+        <TreeNode
+          company={root}
+          companies={companies}
+          highlightedEntityId={selectedEntityId}
+          portfolioCompany={portfolioCompany}
+        />
       </div>
     </div>
   );
