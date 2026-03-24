@@ -11,7 +11,6 @@ import { CompanyEmailDraft } from '@/components/company/CompanyEmailDraft';
 import { CompanyAuditLogs } from '@/components/company/CompanyAuditLogs';
 import { CompanyFiles } from '@/components/company/CompanyFiles';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { entityFiles } from '@/data/mockData';
 import type { AuditStatus } from '@/data/mockData';
 import { toast } from 'sonner';
 
@@ -26,14 +25,12 @@ const allStatuses: AuditStatus[] = ['Pending Review', 'Discrepancy Identified', 
 
 export default function CompanyDetailPage() {
   const { companyId } = useParams<{ companyId: string }>();
-  const { companies, updateCompanyStatus, setActiveAuditPeriod } = useAppState();
+  const { companies, updateCompanyStatus, setActiveAuditPeriod, rcCycles } = useAppState();
   const navigate = useNavigate();
   const [statusOpen, setStatusOpen] = useState(false);
-  const [selectedFileId, setSelectedFileId] = useState<string>('all');
   const [pendingStatus, setPendingStatus] = useState<AuditStatus | null>(null);
   const statusRef = useRef<HTMLDivElement>(null);
 
-  // Close status dropdown on outside click
   useEffect(() => {
     if (!statusOpen) return;
     const handler = (e: MouseEvent) => {
@@ -52,16 +49,6 @@ export default function CompanyDetailPage() {
     );
   }
 
-  const relatedIds = [company.id, ...companies.filter(c => c.parentId === company.id).map(c => c.id)];
-
-  const companyFiles = entityFiles.filter(f =>
-    (f.companyId === companyId || relatedIds.includes(f.entityId)) &&
-    f.reviewPeriod === company.auditPeriod
-  );
-
-
-
-
   const handleStatusClick = (status: AuditStatus) => {
     setPendingStatus(status);
     setStatusOpen(false);
@@ -76,7 +63,6 @@ export default function CompanyDetailPage() {
 
   const handlePeriodChange = (periodId: string) => {
     setActiveAuditPeriod(company.id, periodId);
-    setSelectedFileId('all');
     toast.success('Review period changed');
   };
 
@@ -134,30 +120,13 @@ export default function CompanyDetailPage() {
                 onChange={e => handlePeriodChange(e.target.value)}
                 className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
               >
-                {company.auditPeriods.map(p => (
-                  <option key={p.id} value={p.id}>{p.label}</option>
+                {rcCycles.map(c => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
                 ))}
               </select>
             </div>
-
-            {companyFiles.length > 0 && (
-              <div className="flex flex-col items-end gap-1">
-                <label className="text-[10px] text-gray-400 uppercase tracking-wider">Entity File</label>
-                <select
-                  value={selectedFileId}
-                  onChange={e => setSelectedFileId(e.target.value)}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white max-w-[220px]"
-                >
-                  <option value="all">All Entities</option>
-                  {companyFiles.map(f => (
-                    <option key={f.id} value={f.id}>{f.entityName} — {f.fileName}</option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
         </div>
-
       </div>
 
       {/* Status confirmation dialog */}
@@ -202,10 +171,10 @@ export default function CompanyDetailPage() {
 
         <div className="flex-1 overflow-auto bg-gray-50">
           <TabsContent value="org-chart" className="h-full mt-0">
-            <CompanyOrgChart companyId={company.id} selectedEntityId={selectedFileId !== 'all' ? companyFiles.find(f => f.id === selectedFileId)?.entityId : undefined} />
+            <CompanyOrgChart companyId={company.id} />
           </TabsContent>
           <TabsContent value="financials" className="h-full mt-0">
-            <CompanyFinancials companyId={company.id} selectedEntityId={selectedFileId !== 'all' ? companyFiles.find(f => f.id === selectedFileId)?.entityId : undefined} />
+            <CompanyFinancials companyId={company.id} />
           </TabsContent>
           <TabsContent value="discrepancies" className="h-full mt-0"><CompanyDiscrepancies companyId={company.id} /></TabsContent>
           <TabsContent value="email-draft" className="h-full mt-0"><CompanyEmailDraft companyId={company.id} /></TabsContent>
