@@ -96,33 +96,33 @@ export const companies: Company[] = [
   { id: 'holding', name: 'Vantage Capital Partners', parentId: null, status: 'Pending Review', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-h-1', label: 'Q4 2024', status: 'Pending Review', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
     { id: 'ap-h-2', label: 'Q3 2024', status: 'Resolved', isActive: false, createdAt: '2024-10-01T00:00:00Z' },
-  ], contactEmail: '', contactName: '', hasAuditReport: false, entityStatus: 'Pending Review' },
+  ], contactEmail: '', contactName: '', hasAuditReport: false, entityStatus: 'Pending Review', geolocation: 'United States' },
   { id: 'acme', name: 'Acme Corp', parentId: 'holding', status: 'Discrepancy Identified', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-a-1', label: 'Q4 2024', status: 'Discrepancy Identified', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
     { id: 'ap-a-2', label: 'Q3 2024', status: 'Resolved', isActive: false, createdAt: '2024-10-01T00:00:00Z' },
     { id: 'ap-a-3', label: 'Q2 2024', status: 'Resolved', isActive: false, createdAt: '2024-07-01T00:00:00Z' },
-  ], contactEmail: 'j.chen@acmecorp.com', contactName: 'James Chen', hasAuditReport: true, entityStatus: 'Discrepancy Identified' },
+  ], contactEmail: 'j.chen@acmecorp.com', contactName: 'James Chen', hasAuditReport: true, entityStatus: 'Discrepancy Identified', geolocation: 'United States' },
   { id: 'acme-eu', name: 'Acme Europe GmbH', parentId: 'acme', status: 'Pending Review', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-ae-1', label: 'Q4 2024', status: 'Pending Review', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
-  ], contactEmail: 'k.mueller@acme-eu.de', contactName: 'Klaus Mueller', hasAuditReport: false, entityStatus: 'Pending Review' },
+  ], contactEmail: 'k.mueller@acme-eu.de', contactName: 'Klaus Mueller', hasAuditReport: false, entityStatus: 'Pending Review', geolocation: 'Germany' },
   { id: 'acme-asia', name: 'Acme Asia Pacific', parentId: 'acme', status: 'Resolved', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-aa-1', label: 'Q4 2024', status: 'Resolved', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
     { id: 'ap-aa-2', label: 'Q3 2024', status: 'Resolved', isActive: false, createdAt: '2024-10-01T00:00:00Z' },
-  ], contactEmail: 'l.tanaka@acme-ap.jp', contactName: 'Lisa Tanaka', hasAuditReport: true, entityStatus: 'Resolved' },
+  ], contactEmail: 'l.tanaka@acme-ap.jp', contactName: 'Lisa Tanaka', hasAuditReport: true, entityStatus: 'Resolved', geolocation: 'Japan' },
   { id: 'nexus', name: 'Nexus Technologies', parentId: 'holding', status: 'Clarification Requested', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-n-1', label: 'Q4 2024', status: 'Clarification Requested', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
     { id: 'ap-n-2', label: 'Q3 2024', status: 'Resolved', isActive: false, createdAt: '2024-10-01T00:00:00Z' },
-  ], contactEmail: 'm.rodriguez@nexustech.io', contactName: 'Maria Rodriguez', hasAuditReport: true, entityStatus: 'Clarification Requested' },
+  ], contactEmail: 'm.rodriguez@nexustech.io', contactName: 'Maria Rodriguez', hasAuditReport: true, entityStatus: 'Clarification Requested', geolocation: 'United States' },
   { id: 'nexus-ai', name: 'Nexus AI Labs', parentId: 'nexus', status: 'Pending Review', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-na-1', label: 'Q4 2024', status: 'Pending Review', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
-  ], contactEmail: 'r.patel@nexus-ai.io', contactName: 'Raj Patel', hasAuditReport: false, entityStatus: 'Pending Review' },
+  ], contactEmail: 'r.patel@nexus-ai.io', contactName: 'Raj Patel', hasAuditReport: false, entityStatus: 'Pending Review', geolocation: 'India' },
   { id: 'meridian', name: 'Meridian Health', parentId: 'holding', status: 'Discrepancy Identified', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-m-1', label: 'Q4 2024', status: 'Discrepancy Identified', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
     { id: 'ap-m-2', label: 'Q3 2024', status: 'Resolved', isActive: false, createdAt: '2024-10-01T00:00:00Z' },
-  ], contactEmail: 's.johnson@meridianhealth.com', contactName: 'Sarah Johnson', hasAuditReport: true, entityStatus: 'Discrepancy Identified' },
+  ], contactEmail: 's.johnson@meridianhealth.com', contactName: 'Sarah Johnson', hasAuditReport: true, entityStatus: 'Discrepancy Identified', geolocation: 'United Kingdom' },
   { id: 'meridian-rx', name: 'Meridian Pharma', parentId: 'meridian', status: 'Pending Review', auditPeriod: 'Q4 2024', auditPeriods: [
     { id: 'ap-mr-1', label: 'Q4 2024', status: 'Pending Review', isActive: true, createdAt: '2025-01-01T00:00:00Z' },
-  ], contactEmail: 'd.kim@meridian-rx.com', contactName: 'David Kim', hasAuditReport: true, entityStatus: 'Pending Review' },
+  ], contactEmail: 'd.kim@meridian-rx.com', contactName: 'David Kim', hasAuditReport: true, entityStatus: 'Pending Review', geolocation: 'Singapore' },
 ];
 
 export const entityFiles: EntityFile[] = [
