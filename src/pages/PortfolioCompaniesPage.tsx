@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import { Building2, ChevronRight, Search, X, Upload, Download, Archive, ArchiveRestore, ChevronDown, FileText, Eye } from 'lucide-react';
+import { Building2, ChevronRight, Search, X, ChevronDown, FileText, Eye, Archive, ArchiveRestore } from 'lucide-react';
 import { AuditStatus, entityFiles } from '@/data/mockData';
 import { toast } from '@/components/ui/sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -22,11 +22,6 @@ const statusDot: Record<string, string> = {
 
 const allStatuses: AuditStatus[] = ['Pending Review', 'Discrepancy Identified', 'Clarification Requested', 'Resolved'];
 
-function extractYear(period: string): string {
-  const match = period.match(/(\d{4})/);
-  return match ? match[1] : period;
-}
-
 function StatusStats({ entities }: { entities: { status: AuditStatus }[] }) {
   const counts = allStatuses.map(s => ({
     status: s,
@@ -46,17 +41,6 @@ function StatusStats({ entities }: { entities: { status: AuditStatus }[] }) {
       ))}
     </div>
   );
-}
-
-function downloadSampleCsv() {
-  const csv = 'company_name,contact_name,contact_email\nNew Company Inc,John Doe,john@newco.com';
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'company_upload_sample.csv';
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 function StatusDropdown({ company, onStatusChange }: { company: { id: string; name: string; status: AuditStatus }; onStatusChange: (id: string, name: string, currentStatus: AuditStatus, newStatus: AuditStatus) => void }) {
@@ -137,29 +121,48 @@ function FileListPopover({ companyId, onClose }: { companyId: string; onClose: (
 }
 
 export default function PortfolioCompaniesPage() {
-  const { companies, addCompany, archiveCompany, unarchiveCompany, updateCompanyStatus } = useAppState();
+  const { companies, archiveCompany, unarchiveCompany, updateCompanyStatus, rcCycles, rcEntries } = useAppState();
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<AuditStatus | ''>('');
   const [showArchived, setShowArchived] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<{ id: string; name: string; from: AuditStatus; to: AuditStatus } | null>(null);
   const [fileListOpen, setFileListOpen] = useState<string | null>(null);
+  const [selectedCycleId, setSelectedCycleId] = useState(rcCycles.length > 0 ? rcCycles[0].id : '');
+
+  const selectedCycleLabel = rcCycles.find(c => c.id === selectedCycleId)?.label || '';
+
+  // Get company names in the selected review cycle
+  const companyNamesInCycle = useMemo(() => {
+    if (!selectedCycleId) return new Set<string>();
+    return new Set(rcEntries.filter(e => e.reviewCycleId === selectedCycleId).map(e => e.companyName.toLowerCase()));
+  }, [selectedCycleId, rcEntries]);
 
   const entities = companies.filter(c => c.parentId !== null);
   const activeEntities = entities.filter(c => !c.isArchived);
   const archivedEntities = entities.filter(c => c.isArchived);
 
-  const displayEntities = showArchived ? archivedEntities : activeEntities;
+  // Filter entities by selected review cycle (match by parent company name or own name)
+  const cycleFilteredEntities = useMemo(() => {
+    const displayEntities = showArchived ? archivedEntities : activeEntities;
+    if (!selectedCycleId) return displayEntities;
+    return displayEntities.filter(entity => {
+      // Check if entity name or its parent company name is in the cycle
+      if (companyNamesInCycle.has(entity.name.toLowerCase())) return true;
+      const parent = companies.find(c => c.id === entity.parentId);
+      if (parent && companyNamesInCycle.has(parent.name.toLowerCase())) return true;
+      return false;
+    });
+  }, [showArchived, activeEntities, archivedEntities, selectedCycleId, companyNamesInCycle, companies]);
 
   const filtered = useMemo(() => {
-    return displayEntities.filter(c => {
+    return cycleFilteredEntities.filter(c => {
       if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (statusFilter && c.status !== statusFilter) return false;
       return true;
     });
-  }, [displayEntities, search, statusFilter]);
+  }, [cycleFilteredEntities, search, statusFilter]);
 
   const hasFilters = search || statusFilter;
 
@@ -172,54 +175,6 @@ export default function PortfolioCompaniesPage() {
     updateCompanyStatus(pendingStatus.id, pendingStatus.to);
     toast.success(`${pendingStatus.name} status updated to "${pendingStatus.to}"`);
     setPendingStatus(null);
-  };
-
-  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.name.endsWith('.csv')) {
-      toast.error('Please upload a CSV file');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      const lines = text.trim().split('\n');
-      if (lines.length < 2) {
-        toast.error('CSV must have a header row and at least one data row');
-        return;
-      }
-
-      const header = lines[0].split(',').map(h => h.trim().toLowerCase());
-      const nameIdx = header.findIndex(h => h === 'company_name' || h === 'name');
-      const contactNameIdx = header.findIndex(h => h === 'contact_name');
-      const contactEmailIdx = header.findIndex(h => h === 'contact_email');
-
-      if (nameIdx === -1) {
-        toast.error('CSV must have a "company_name" column');
-        return;
-      }
-
-      let added = 0;
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map(c => c.trim());
-        const name = cols[nameIdx];
-        if (!name) continue;
-        const contactName = contactNameIdx !== -1 ? cols[contactNameIdx] || '' : '';
-        const contactEmail = contactEmailIdx !== -1 ? cols[contactEmailIdx] || '' : '';
-        addCompany(name, contactName, contactEmail);
-        added++;
-      }
-
-      if (added === 0) {
-        toast.error('No valid rows found in CSV');
-      } else {
-        toast.success(`Added ${added} company(ies)`);
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
   };
 
   const handleArchive = (e: React.MouseEvent, companyId: string, name: string) => {
@@ -240,32 +195,26 @@ export default function PortfolioCompaniesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">In Review Tracker</h1>
-          <p className="text-sm text-gray-500 mt-1">{filtered.length} of {displayEntities.length} entities</p>
+          <p className="text-sm text-gray-500 mt-1">{filtered.length} of {cycleFilteredEntities.length} entities</p>
         </div>
         <div className="flex items-center gap-2">
+          <select
+            value={selectedCycleId}
+            onChange={e => setSelectedCycleId(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            {rcCycles.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
           <button
             onClick={() => setShowArchived(!showArchived)}
             className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-500 ${showArchived ? 'bg-gray-100' : ''}`}
           >
             <Archive className="h-4 w-4" /> {showArchived ? `Archived (${archivedEntities.length})` : 'View Archived'}
           </button>
-          <button
-            onClick={downloadSampleCsv}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-500"
-          >
-            <Download className="h-4 w-4" /> Sample CSV
-          </button>
-          <input ref={fileInputRef} type="file" accept=".csv" onChange={handleCsvUpload} className="hidden" />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 bg-blue-500 text-white hover:bg-blue-600 focus:ring-blue-500"
-          >
-            <Upload className="h-4 w-4" /> Upload Companies
-          </button>
         </div>
       </div>
 
-      {!showArchived && <StatusStats entities={activeEntities} />}
+      {!showArchived && <StatusStats entities={cycleFilteredEntities} />}
 
       {/* Filters bar */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
@@ -305,7 +254,7 @@ export default function PortfolioCompaniesPage() {
             <tr className="bg-gray-50">
               <th className="text-xs font-medium text-gray-500 uppercase tracking-wider text-left px-4 py-3">Company</th>
               <th className="text-xs font-medium text-gray-500 uppercase tracking-wider text-left px-4 py-3">Status</th>
-              <th className="text-xs font-medium text-gray-500 uppercase tracking-wider text-left px-4 py-3">Ending Year</th>
+              <th className="text-xs font-medium text-gray-500 uppercase tracking-wider text-left px-4 py-3">Review Period</th>
               <th className="text-xs font-medium text-gray-500 uppercase tracking-wider text-left px-4 py-3">Contact</th>
               <th className="text-xs font-medium text-gray-500 uppercase tracking-wider text-left px-4 py-3">Files</th>
               <th className="text-xs font-medium text-gray-500 uppercase tracking-wider text-center px-4 py-3 w-20"></th>
@@ -336,7 +285,7 @@ export default function PortfolioCompaniesPage() {
                     <td className="px-4 py-3">
                       <StatusDropdown company={company} onStatusChange={handleStatusChange} />
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 font-mono">{extractYear(company.auditPeriod)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{selectedCycleLabel}</td>
                     <td className="px-4 py-3 text-sm text-gray-500">{company.contactName || '—'}</td>
                     <td className="px-4 py-3">
                       <div className="relative" onClick={e => e.stopPropagation()}>
