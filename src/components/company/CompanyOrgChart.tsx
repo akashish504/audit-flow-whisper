@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { Company, taggedFiles, AuditStatus } from '@/data/mockData';
-import { Building2, CheckCircle2, Paperclip, Search, FileText, X, ChevronDown } from 'lucide-react';
+import { Building2, CheckCircle2, Paperclip, Search, FileText, X, ChevronDown, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -13,6 +13,21 @@ const statusBadge: Record<string, string> = {
 };
 
 const allStatuses: AuditStatus[] = ['Pending Review', 'Discrepancy Identified', 'Clarification Requested', 'Resolved'];
+
+function findMainCompany(company: Company, allCompanies: Company[]): Company | undefined {
+  // Walk up the tree to find the company whose parentId is the root (holding)
+  let current = company;
+  while (current.parentId) {
+    const parent = allCompanies.find(c => c.id === current.parentId);
+    if (!parent) break;
+    if (parent.parentId === null) {
+      // current's parent is root, so current is the main company
+      return current;
+    }
+    current = parent;
+  }
+  return undefined;
+}
 
 function FilePickerPopover({ companyId, companyName, onClose }: { companyId: string; companyName: string; onClose: () => void }) {
   const [search, setSearch] = useState('');
@@ -64,12 +79,12 @@ function FilePickerPopover({ companyId, companyName, onClose }: { companyId: str
   );
 }
 
-function OrgNodeCard({ company, isHighlighted, parentCompany }: { company: Company; isHighlighted?: boolean; parentCompany?: Company }) {
+function OrgNodeCard({ company, isHighlighted, mainCompany }: { company: Company; isHighlighted?: boolean; mainCompany?: Company }) {
   const { attachReport, updateEntityStatus, updateCompanyStatus } = useAppState();
   const [showFilePicker, setShowFilePicker] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<AuditStatus | null>(null);
-  const [alsoUpdateParent, setAlsoUpdateParent] = useState(false);
+  const [alsoUpdateMain, setAlsoUpdateMain] = useState(false);
   const statusMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -95,18 +110,19 @@ function OrgNodeCard({ company, isHighlighted, parentCompany }: { company: Compa
   const confirmEntityStatusChange = () => {
     if (!pendingStatus) return;
     updateEntityStatus(company.id, pendingStatus);
-    if (alsoUpdateParent && parentCompany) {
-      updateCompanyStatus(parentCompany.id, pendingStatus);
-      toast.success(`Entity and portfolio company status updated to "${pendingStatus}"`);
+    if (alsoUpdateMain && mainCompany) {
+      updateCompanyStatus(mainCompany.id, pendingStatus);
+      toast.success(`Entity and ${mainCompany.name} status updated to "${pendingStatus}"`);
     } else {
       toast.success(`Entity status updated to "${pendingStatus}"`);
     }
     setPendingStatus(null);
-    setAlsoUpdateParent(false);
+    setAlsoUpdateMain(false);
     setShowStatusMenu(false);
   };
 
-  const hasParent = !!parentCompany && company.parentId !== null;
+  // Show checkbox only if this entity is NOT the main company itself and a main company exists
+  const showMainCheckbox = !!mainCompany && mainCompany.id !== company.id;
 
   return (
     <div className={`relative bg-white border rounded-lg shadow-sm px-4 py-3 min-w-[200px] max-w-[240px] hover:shadow-md transition-all group ${isHighlighted ? 'border-blue-400 ring-2 ring-blue-100' : 'border-gray-200'}`}>
@@ -114,6 +130,13 @@ function OrgNodeCard({ company, isHighlighted, parentCompany }: { company: Compa
         <Building2 className="h-4 w-4 text-blue-500 shrink-0" />
         <span className="text-sm font-semibold text-gray-900 truncate">{company.name}</span>
       </div>
+      {/* Geolocation tag */}
+      {company.geolocation && (
+        <div className="flex items-center gap-1 mb-1.5">
+          <MapPin className="h-3 w-3 text-gray-400" />
+          <span className="text-[10px] text-gray-500">{company.geolocation}</span>
+        </div>
+      )}
       {/* Entity-level status dropdown */}
       <div className="relative mb-2" ref={statusMenuRef}>
         <button
@@ -128,7 +151,7 @@ function OrgNodeCard({ company, isHighlighted, parentCompany }: { company: Compa
             {allStatuses.map(s => (
               <button
                 key={s}
-                onClick={(e) => { e.stopPropagation(); setPendingStatus(s); setAlsoUpdateParent(false); setShowStatusMenu(false); }}
+                onClick={(e) => { e.stopPropagation(); setPendingStatus(s); setAlsoUpdateMain(false); setShowStatusMenu(false); }}
                 className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-2 ${s === (company.entityStatus || company.status) ? 'font-semibold' : ''}`}
               >
                 <span className={`w-2 h-2 rounded-full ${s === 'Pending Review' ? 'bg-yellow-400' : s === 'Discrepancy Identified' ? 'bg-red-400' : s === 'Clarification Requested' ? 'bg-blue-400' : 'bg-green-400'}`} />
@@ -166,8 +189,8 @@ function OrgNodeCard({ company, isHighlighted, parentCompany }: { company: Compa
         />
       )}
 
-      {/* Confirmation dialog with optional parent update */}
-      <AlertDialog open={!!pendingStatus} onOpenChange={(open) => { if (!open) { setPendingStatus(null); setAlsoUpdateParent(false); } }}>
+      {/* Confirmation dialog with optional main company update */}
+      <AlertDialog open={!!pendingStatus} onOpenChange={(open) => { if (!open) { setPendingStatus(null); setAlsoUpdateMain(false); } }}>
         <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-gray-900">Confirm Status Change</AlertDialogTitle>
@@ -176,16 +199,16 @@ function OrgNodeCard({ company, isHighlighted, parentCompany }: { company: Compa
                 <p className="text-sm text-gray-500">
                   Change <span className="font-medium text-gray-700">{company.name}</span> status from <span className="font-medium text-gray-700">{company.entityStatus || company.status}</span> to <span className="font-medium text-gray-700">{pendingStatus}</span>?
                 </p>
-                {hasParent && (
+                {showMainCheckbox && (
                   <label className="flex items-start gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={alsoUpdateParent}
-                      onChange={e => setAlsoUpdateParent(e.target.checked)}
+                      checked={alsoUpdateMain}
+                      onChange={e => setAlsoUpdateMain(e.target.checked)}
                       className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
                     />
                     <span className="text-sm text-gray-700">
-                      Also update portfolio company <span className="font-medium">{parentCompany?.name}</span> status to <span className="font-medium">{pendingStatus}</span>
+                      Also update <span className="font-medium">{mainCompany?.name}</span> status to <span className="font-medium">{pendingStatus}</span>
                     </span>
                   </label>
                 )}
@@ -202,23 +225,22 @@ function OrgNodeCard({ company, isHighlighted, parentCompany }: { company: Compa
   );
 }
 
-function TreeNode({ company, companies, highlightedEntityId }: { company: Company; companies: Company[]; highlightedEntityId?: string }) {
+function TreeNode({ company, companies, highlightedEntityId, mainCompany }: { company: Company; companies: Company[]; highlightedEntityId?: string; mainCompany?: Company }) {
   const children = companies.filter(c => c.parentId === company.id);
-  const parentCompany = company.parentId ? companies.find(c => c.id === company.parentId) : undefined;
+
+  // Determine the main company for this node
+  const resolvedMain = mainCompany || findMainCompany(company, companies);
 
   return (
     <div className="flex flex-col items-center">
-      <OrgNodeCard company={company} isHighlighted={highlightedEntityId === company.id} parentCompany={parentCompany} />
+      <OrgNodeCard company={company} isHighlighted={highlightedEntityId === company.id} mainCompany={resolvedMain} />
       {children.length > 0 && (
         <>
-          {/* Vertical line from parent down */}
           <div className="w-0.5 h-6 bg-border" />
           <div className="flex gap-8">
             {children.map((child, idx) => (
               <div key={child.id} className="relative flex flex-col items-center">
-                {/* Vertical line from horizontal bar to child */}
                 <div className="w-0.5 h-6 bg-border" />
-                {/* Horizontal connector */}
                 {children.length > 1 && (
                   <div
                     className="absolute top-0 h-0.5 bg-border"
@@ -228,7 +250,7 @@ function TreeNode({ company, companies, highlightedEntityId }: { company: Compan
                     }}
                   />
                 )}
-                <TreeNode company={child} companies={companies} highlightedEntityId={highlightedEntityId} />
+                <TreeNode company={child} companies={companies} highlightedEntityId={highlightedEntityId} mainCompany={resolvedMain} />
               </div>
             ))}
           </div>
