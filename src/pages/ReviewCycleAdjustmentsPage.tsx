@@ -234,7 +234,6 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
                     <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Review Cycle</th>
                   )}
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -249,9 +248,18 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
                     <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{entry.companyName}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stageBadge(entry.stage)}`}>
-                          {entry.stage}
-                        </span>
+                        <select
+                          value={entry.stage}
+                          onChange={e => {
+                            const newStage = e.target.value as ReviewStage;
+                            if (newStage !== entry.stage) {
+                              setConfirmDialog({ entryId: entry.id, newStage });
+                            }
+                          }}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer border-none focus:outline-none focus:ring-2 focus:ring-blue-500 ${stageBadge(entry.stage)}`}
+                        >
+                          {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">{entry.contactName}</td>
                       <td className="px-4 py-3 text-sm text-gray-500">{entry.contactEmail}</td>
@@ -259,15 +267,6 @@ const ReviewCycleAdjustmentsPage: React.FC = () => {
                         <td className="px-4 py-3 text-sm text-gray-500">{getCycleLabel(entry.reviewCycleId)}</td>
                       )}
                       <td className="px-4 py-3 text-sm text-gray-500">{new Date(entry.updatedAt).toLocaleDateString()}</td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={entry.stage}
-                          onChange={e => setConfirmDialog({ entryId: entry.id, newStage: e.target.value as ReviewStage })}
-                          className="px-2 py-1 border border-gray-300 rounded-md text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        >
-                          {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </td>
                     </tr>
                   ))
                 )}
