@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { taggedFiles as initialFiles, TaggedFile, companies } from '@/data/mockData';
 import { useAppState } from '@/context/AppContext';
-import { FileText, Upload, Tag, CheckCircle2, Clock, AlertTriangle, RotateCcw } from 'lucide-react';
+import { FileText, Upload, Tag, CheckCircle2, Clock, AlertTriangle, RotateCcw, ChevronLeft, CloudUpload } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusConfig: Record<string, { icon: React.ElementType; badge: string }> = {
@@ -11,7 +11,6 @@ const statusConfig: Record<string, { icon: React.ElementType; badge: string }> =
   error: { icon: AlertTriangle, badge: 'bg-red-100 text-red-800' },
 };
 
-type UploadStep = 'cycle' | 'company' | 'entity';
 type TagStep = 'cycle' | 'company' | 'entity' | 'confirm';
 
 export default function FileTaggingPage() {
@@ -19,14 +18,14 @@ export default function FileTaggingPage() {
   const navigate = useNavigate();
   const { rcCycles, rcEntries } = useAppState();
 
-  // Upload flow state
+  // Upload flow state — single view
   const [showUploadDialog, setShowUploadDialog] = useState(false);
-  const [uploadStep, setUploadStep] = useState<UploadStep>('cycle');
   const [uploadCycleId, setUploadCycleId] = useState('');
   const [uploadCompanyName, setUploadCompanyName] = useState('');
   const [uploadEntityId, setUploadEntityId] = useState('');
+  const [uploadFileName, setUploadFileName] = useState('');
 
-  // Tag flow state
+  // Tag flow state — auto-advance
   const [taggingFileId, setTaggingFileId] = useState<string | null>(null);
   const [tagStep, setTagStep] = useState<TagStep>('cycle');
   const [tagCycleId, setTagCycleId] = useState('');
@@ -35,13 +34,11 @@ export default function FileTaggingPage() {
 
   const entities = companies.filter(c => c.parentId !== null);
 
-  // Companies for a selected review cycle
   const companiesForCycle = (cycleId: string) => {
     const names = new Set(rcEntries.filter(e => e.reviewCycleId === cycleId).map(e => e.companyName));
     return Array.from(names);
   };
 
-  // Entities for a selected company name
   const entitiesForCompany = (companyName: string) => {
     const company = companies.find(c => c.name.toLowerCase() === companyName.toLowerCase() && c.parentId === null);
     if (!company) return entities;
@@ -60,18 +57,22 @@ export default function FileTaggingPage() {
 
   // Upload flow
   const openUploadDialog = () => {
-    setUploadStep('cycle');
     setUploadCycleId('');
     setUploadCompanyName('');
     setUploadEntityId('');
+    setUploadFileName('');
     setShowUploadDialog(true);
   };
 
   const handleUploadConfirm = () => {
-    const entity = companies.find(c => c.id === uploadEntityId);
+    if (!uploadFileName) {
+      toast.error('Please select a file to upload');
+      return;
+    }
+    const entity = uploadEntityId ? companies.find(c => c.id === uploadEntityId) : null;
     const newFile: TaggedFile = {
       id: `f-${Date.now()}`,
-      fileName: `Uploaded_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+      fileName: uploadFileName,
       fileType: 'pdf',
       uploadedAt: new Date().toISOString(),
       size: '1.5 MB',
@@ -81,10 +82,10 @@ export default function FileTaggingPage() {
     };
     setFiles(prev => [newFile, ...prev]);
     setShowUploadDialog(false);
-    toast.success(`File uploaded and attached to ${entity?.name || 'entity'}`);
+    toast.success(entity ? `File uploaded and tagged to ${entity.name}` : 'File uploaded successfully');
   };
 
-  // Tag flow
+  // Tag flow — auto-advance handlers
   const openTagDialog = (fileId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setTaggingFileId(fileId);
@@ -92,6 +93,24 @@ export default function FileTaggingPage() {
     setTagCycleId('');
     setTagCompanyName('');
     setTagEntityId('');
+  };
+
+  const handleTagCycleSelect = (cycleId: string) => {
+    setTagCycleId(cycleId);
+    setTagCompanyName('');
+    setTagEntityId('');
+    setTagStep('company');
+  };
+
+  const handleTagCompanySelect = (companyName: string) => {
+    setTagCompanyName(companyName);
+    setTagEntityId('');
+    setTagStep('entity');
+  };
+
+  const handleTagEntitySelect = (entityId: string) => {
+    setTagEntityId(entityId);
+    setTagStep('confirm');
   };
 
   const handleTagConfirm = () => {
@@ -108,6 +127,12 @@ export default function FileTaggingPage() {
   const uploadEntities = useMemo(() => entitiesForCompany(uploadCompanyName), [uploadCompanyName]);
   const tagCompanies = useMemo(() => companiesForCycle(tagCycleId), [tagCycleId, rcEntries]);
   const tagEntities = useMemo(() => entitiesForCompany(tagCompanyName), [tagCompanyName]);
+
+  const tagStepBack = (step: TagStep) => {
+    if (step === 'company') { setTagStep('cycle'); setTagCycleId(''); }
+    else if (step === 'entity') { setTagStep('company'); setTagCompanyName(''); }
+    else if (step === 'confirm') { setTagStep('entity'); setTagEntityId(''); }
+  };
 
   return (
     <div className="h-full overflow-auto p-6">
@@ -138,7 +163,6 @@ export default function FileTaggingPage() {
             {files.map(file => {
               const config = statusConfig[file.status] || statusConfig.pending;
               const StatusIcon = config.icon;
-
               return (
                 <tr
                   key={file.id}
@@ -188,106 +212,107 @@ export default function FileTaggingPage() {
         </table>
       </div>
 
-      {/* Upload File Dialog - stepped flow */}
+      {/* Upload File Dialog — single view with file input + optional tagging */}
       {showUploadDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowUploadDialog(false)}>
           <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-sm font-semibold text-gray-900 mb-4">Upload File</h3>
 
-            {/* Step indicators */}
-            <div className="flex items-center gap-2 mb-5">
-              {['Review Cycle', 'Company', 'Entity'].map((label, i) => {
-                const stepKeys: UploadStep[] = ['cycle', 'company', 'entity'];
-                const currentIdx = stepKeys.indexOf(uploadStep);
-                const isActive = i === currentIdx;
-                const isDone = i < currentIdx;
-                return (
-                  <div key={label} className="flex items-center gap-2">
-                    {i > 0 && <div className={`w-6 h-px ${isDone ? 'bg-blue-500' : 'bg-gray-200'}`} />}
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                      isActive ? 'bg-blue-100 text-blue-800' : isDone ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'
-                    }`}>{label}</span>
+            {/* File input */}
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Select File</label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
+                {uploadFileName ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <FileText className="h-4 w-4 text-red-400" />
+                    <span className="text-sm font-medium text-gray-700">{uploadFileName}</span>
+                    <button onClick={() => setUploadFileName('')} className="text-xs text-gray-400 hover:text-red-500 ml-2">Remove</button>
                   </div>
-                );
-              })}
+                ) : (
+                  <label className="cursor-pointer">
+                    <CloudUpload className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">Click to browse or drag & drop</p>
+                    <p className="text-xs text-gray-400 mt-1">PDF, XLSX, DOCX up to 50MB</p>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.xlsx,.docx"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setUploadFileName(file.name);
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
             </div>
 
-            {uploadStep === 'cycle' && (
-              <div>
-                <label className="block text-sm text-gray-700 mb-1.5">Select Review Cycle</label>
-                <select
-                  value={uploadCycleId}
-                  onChange={e => setUploadCycleId(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="" disabled>Select a review cycle...</option>
-                  {rcCycles.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                </select>
-                <div className="flex justify-end gap-2 mt-5">
-                  <button onClick={() => setShowUploadDialog(false)} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Cancel</button>
-                  <button
-                    onClick={() => setUploadStep('company')}
-                    disabled={!uploadCycleId}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${uploadCycleId ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                  >Next</button>
-                </div>
-              </div>
-            )}
+            {/* Optional tagging section */}
+            <div className="border-t border-gray-100 pt-4 mb-5">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Tag to Entity <span className="text-gray-400 normal-case font-normal">(optional)</span></p>
 
-            {uploadStep === 'company' && (
-              <div>
-                <label className="block text-sm text-gray-700 mb-1.5">Select Company</label>
-                <select
-                  value={uploadCompanyName}
-                  onChange={e => setUploadCompanyName(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="" disabled>Select a company...</option>
-                  {uploadCompanies.map(name => <option key={name} value={name}>{name}</option>)}
-                </select>
-                {uploadCompanies.length === 0 && (
-                  <p className="text-xs text-gray-400 mt-2">No companies in this review cycle.</p>
-                )}
-                <div className="flex justify-end gap-2 mt-5">
-                  <button onClick={() => setUploadStep('cycle')} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Back</button>
-                  <button
-                    onClick={() => setUploadStep('entity')}
-                    disabled={!uploadCompanyName}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${uploadCompanyName ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                  >Next</button>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Review Cycle</label>
+                  <select
+                    value={uploadCycleId}
+                    onChange={e => { setUploadCycleId(e.target.value); setUploadCompanyName(''); setUploadEntityId(''); }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select a review cycle...</option>
+                    {rcCycles.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                  </select>
                 </div>
-              </div>
-            )}
 
-            {uploadStep === 'entity' && (
-              <div>
-                <label className="block text-sm text-gray-700 mb-1.5">Select Entity</label>
-                <select
-                  value={uploadEntityId}
-                  onChange={e => setUploadEntityId(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="" disabled>Select an entity...</option>
-                  {uploadEntities.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                </select>
-                {uploadEntities.length === 0 && (
-                  <p className="text-xs text-gray-400 mt-2">No entities found for this company.</p>
+                {uploadCycleId && (
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Company</label>
+                    <select
+                      value={uploadCompanyName}
+                      onChange={e => { setUploadCompanyName(e.target.value); setUploadEntityId(''); }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select a company...</option>
+                      {uploadCompanies.map(name => <option key={name} value={name}>{name}</option>)}
+                    </select>
+                    {uploadCompanies.length === 0 && (
+                      <p className="text-xs text-gray-400 mt-1">No companies in this cycle.</p>
+                    )}
+                  </div>
                 )}
-                <div className="flex justify-end gap-2 mt-5">
-                  <button onClick={() => setUploadStep('company')} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Back</button>
-                  <button
-                    onClick={handleUploadConfirm}
-                    disabled={!uploadEntityId}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${uploadEntityId ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                  >Upload & Attach</button>
-                </div>
+
+                {uploadCompanyName && (
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Entity</label>
+                    <select
+                      value={uploadEntityId}
+                      onChange={e => setUploadEntityId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select an entity...</option>
+                      {uploadEntities.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                    </select>
+                    {uploadEntities.length === 0 && (
+                      <p className="text-xs text-gray-400 mt-1">No entities found.</p>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowUploadDialog(false)} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Cancel</button>
+              <button
+                onClick={handleUploadConfirm}
+                disabled={!uploadFileName}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${uploadFileName ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+              >Upload</button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Tag File Dialog - stepped flow */}
+      {/* Tag File Dialog — auto-advance on select */}
       {taggingFileId && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setTaggingFileId(null)}>
           <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl" onClick={e => e.stopPropagation()}>
@@ -318,7 +343,7 @@ export default function FileTaggingPage() {
                 <label className="block text-sm text-gray-700 mb-1.5">Select Review Cycle</label>
                 <select
                   value={tagCycleId}
-                  onChange={e => setTagCycleId(e.target.value)}
+                  onChange={e => handleTagCycleSelect(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="" disabled>Select a review cycle...</option>
@@ -326,11 +351,6 @@ export default function FileTaggingPage() {
                 </select>
                 <div className="flex justify-end gap-2 mt-5">
                   <button onClick={() => setTaggingFileId(null)} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Cancel</button>
-                  <button
-                    onClick={() => setTagStep('company')}
-                    disabled={!tagCycleId}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${tagCycleId ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                  >Next</button>
                 </div>
               </div>
             )}
@@ -340,19 +360,16 @@ export default function FileTaggingPage() {
                 <label className="block text-sm text-gray-700 mb-1.5">Select Company</label>
                 <select
                   value={tagCompanyName}
-                  onChange={e => setTagCompanyName(e.target.value)}
+                  onChange={e => handleTagCompanySelect(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="" disabled>Select a company...</option>
                   {tagCompanies.map(name => <option key={name} value={name}>{name}</option>)}
                 </select>
-                <div className="flex justify-end gap-2 mt-5">
-                  <button onClick={() => setTagStep('cycle')} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Back</button>
-                  <button
-                    onClick={() => setTagStep('entity')}
-                    disabled={!tagCompanyName}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${tagCompanyName ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                  >Next</button>
+                <div className="flex justify-start mt-5">
+                  <button onClick={() => tagStepBack('company')} className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">
+                    <ChevronLeft className="h-3.5 w-3.5" /> Back
+                  </button>
                 </div>
               </div>
             )}
@@ -362,19 +379,16 @@ export default function FileTaggingPage() {
                 <label className="block text-sm text-gray-700 mb-1.5">Select Entity</label>
                 <select
                   value={tagEntityId}
-                  onChange={e => setTagEntityId(e.target.value)}
+                  onChange={e => handleTagEntitySelect(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="" disabled>Select an entity...</option>
                   {tagEntities.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                 </select>
-                <div className="flex justify-end gap-2 mt-5">
-                  <button onClick={() => setTagStep('company')} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Back</button>
-                  <button
-                    onClick={() => setTagStep('confirm')}
-                    disabled={!tagEntityId}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${tagEntityId ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                  >Next</button>
+                <div className="flex justify-start mt-5">
+                  <button onClick={() => tagStepBack('entity')} className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">
+                    <ChevronLeft className="h-3.5 w-3.5" /> Back
+                  </button>
                 </div>
               </div>
             )}
@@ -388,8 +402,10 @@ export default function FileTaggingPage() {
                   <p className="text-sm text-gray-700"><span className="font-medium">Company:</span> {tagCompanyName}</p>
                   <p className="text-sm text-gray-700"><span className="font-medium">Entity:</span> {companies.find(c => c.id === tagEntityId)?.name}</p>
                 </div>
-                <div className="flex justify-end gap-2">
-                  <button onClick={() => setTagStep('entity')} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Back</button>
+                <div className="flex justify-between">
+                  <button onClick={() => tagStepBack('confirm')} className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">
+                    <ChevronLeft className="h-3.5 w-3.5" /> Back
+                  </button>
                   <button
                     onClick={handleTagConfirm}
                     className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-all"
