@@ -76,7 +76,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [emails, setEmails] = useState<EmailThread[]>(initialEmails);
   const [fieldThresholds, setFieldThresholdsRaw] = useState<Record<string, number>>(defaultFieldThresholds);
   const [discrepancies, setDiscrepancies] = useState<DiscrepancyItem[]>(buildDiscrepancies(defaultFieldThresholds));
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [rcCycles, setRcCycles] = useState<ReviewCycle[]>(initialReviewCycles);
+  const [rcEntries, setRcEntries] = useState<ReviewCompanyEntry[]>(initialReviewCompanyEntries);
+  const [rcLogs, setRcLogs] = useState<ReviewCycleLog[]>(initialReviewCycleLogs);
 
   const setFieldThresholds = (thresholds: Record<string, number>) => {
     setFieldThresholdsRaw(thresholds);
