@@ -50,8 +50,6 @@ interface AppState {
   addAuditPeriod: (companyId: string, period: AuditPeriod) => void;
   setActiveAuditPeriod: (companyId: string, periodId: string) => void;
   bulkCreateReviewCycles: (rows: { companyId: string; periodLabel: string }[]) => void;
-  archiveCompany: (companyId: string) => void;
-  unarchiveCompany: (companyId: string) => void;
   updateDiscrepancy: (id: string, updates: Partial<DiscrepancyItem>) => void;
   addCompany: (name: string, contactName: string, contactEmail: string) => void;
   // Review Cycle Adjustments
