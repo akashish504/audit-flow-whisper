@@ -183,6 +183,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCompanies(prev => [...prev, newCompany]);
   };
 
+  const addReviewCycle = (label: string) => {
+    const exists = rcCycles.some(c => c.label === label);
+    if (exists) return;
+    const newCycle: ReviewCycle = {
+      id: `rc-${Date.now()}`,
+      label,
+      createdAt: new Date().toISOString(),
+    };
+    setRcCycles(prev => [newCycle, ...prev]);
+    setRcLogs(prev => [{
+      id: `rcl-${Date.now()}`,
+      action: 'Cycle Created',
+      timestamp: new Date().toISOString(),
+      user: 'admin@vantagecap.com',
+      details: `Review cycle ${label} created`,
+      reviewCycleId: newCycle.id,
+    }, ...prev]);
+  };
+
+  const addOrUpdateRCEntries = (cycleId: string, entries: Omit<ReviewCompanyEntry, 'id' | 'reviewCycleId' | 'updatedAt'>[]) => {
+    setRcEntries(prev => {
+      const updated = [...prev];
+      for (const entry of entries) {
+        const existingIdx = updated.findIndex(e => e.reviewCycleId === cycleId && e.companyName.toLowerCase() === entry.companyName.toLowerCase());
+        if (existingIdx !== -1) {
+          updated[existingIdx] = { ...updated[existingIdx], ...entry, updatedAt: new Date().toISOString() };
+        } else {
+          updated.push({
+            ...entry,
+            id: `rce-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            reviewCycleId: cycleId,
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      }
+      return updated;
+    });
+    setRcLogs(prev => [{
+      id: `rcl-${Date.now()}`,
+      action: 'CSV Uploaded',
+      timestamp: new Date().toISOString(),
+      user: 'admin@vantagecap.com',
+      details: `${entries.length} companies uploaded/updated for cycle`,
+      reviewCycleId: cycleId,
+    }, ...prev]);
+  };
+
+  const updateRCEntryStage = (entryId: string, stage: ReviewStage) => {
+    setRcEntries(prev => prev.map(e => e.id === entryId ? { ...e, stage, updatedAt: new Date().toISOString() } : e));
+    const entry = rcEntries.find(e => e.id === entryId);
+    setRcLogs(prev => [{
+      id: `rcl-${Date.now()}`,
+      action: 'Stage Changed',
+      timestamp: new Date().toISOString(),
+      user: 'admin@vantagecap.com',
+      details: `${entry?.companyName ?? 'Company'} stage changed to ${stage}`,
+      reviewCycleId: entry?.reviewCycleId,
+    }, ...prev]);
+  };
+
   return (
     <AppContext.Provider value={{
       companies, emails, discrepancies, fieldThresholds, setFieldThresholds,
