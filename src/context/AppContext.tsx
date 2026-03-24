@@ -79,6 +79,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [rcCycles, setRcCycles] = useState<ReviewCycle[]>(initialReviewCycles);
   const [rcEntries, setRcEntries] = useState<ReviewCompanyEntry[]>(initialReviewCompanyEntries);
   const [rcLogs, setRcLogs] = useState<ReviewCycleLog[]>(initialReviewCycleLogs);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
 
   const setFieldThresholds = (thresholds: Record<string, number>) => {
     setFieldThresholdsRaw(thresholds);
