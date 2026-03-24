@@ -92,17 +92,11 @@ function OrgNodeCard({ company, isHighlighted, portfolioCompany }: { company: Co
     setShowFilePicker(prev => !prev);
   };
 
-  const isSameAsPortfolio = !!portfolioCompany && company.id === portfolioCompany.id;
-
   const confirmEntityStatusChange = () => {
     if (!pendingStatus) return;
     updateEntityStatus(company.id, pendingStatus);
 
-    // If this node IS the portfolio company, always update company status too
-    if (isSameAsPortfolio) {
-      updateCompanyStatus(company.id, pendingStatus);
-      toast.success(`${company.name} status updated to "${pendingStatus}"`);
-    } else if (alsoUpdatePortfolio && portfolioCompany) {
+    if (alsoUpdatePortfolio && portfolioCompany) {
       updateCompanyStatus(portfolioCompany.id, pendingStatus);
       toast.success(`Entity and ${portfolioCompany.name} status updated to "${pendingStatus}"`);
     } else {
@@ -114,7 +108,7 @@ function OrgNodeCard({ company, isHighlighted, portfolioCompany }: { company: Co
     setShowStatusMenu(false);
   };
 
-  const showPortfolioCheckbox = !!portfolioCompany && company.id !== portfolioCompany.id;
+  const showPortfolioCheckbox = !!portfolioCompany;
 
   return (
     <div className={`relative bg-white border rounded-lg shadow-sm px-4 py-3 min-w-[200px] max-w-[240px] hover:shadow-md transition-all group ${isHighlighted ? 'border-blue-400 ring-2 ring-blue-100' : 'border-gray-200'}`}>
