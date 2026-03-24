@@ -92,17 +92,11 @@ function OrgNodeCard({ company, isHighlighted, portfolioCompany }: { company: Co
     setShowFilePicker(prev => !prev);
   };
 
-  const isSameAsPortfolio = !!portfolioCompany && company.id === portfolioCompany.id;
-
   const confirmEntityStatusChange = () => {
     if (!pendingStatus) return;
     updateEntityStatus(company.id, pendingStatus);
 
-    // If this node IS the portfolio company, always update company status too
-    if (isSameAsPortfolio) {
-      updateCompanyStatus(company.id, pendingStatus);
-      toast.success(`${company.name} status updated to "${pendingStatus}"`);
-    } else if (alsoUpdatePortfolio && portfolioCompany) {
+    if (alsoUpdatePortfolio && portfolioCompany) {
       updateCompanyStatus(portfolioCompany.id, pendingStatus);
       toast.success(`Entity and ${portfolioCompany.name} status updated to "${pendingStatus}"`);
     } else {
