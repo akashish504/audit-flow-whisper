@@ -16,7 +16,6 @@ const allStatuses: AuditStatus[] = ['Pending Review', 'Discrepancy Identified', 
 
 function FilePickerPopover({ companyId, companyName, onClose }: { companyId: string; companyName: string; onClose: () => void }) {
   const [search, setSearch] = useState('');
-  const ref = { current: null as HTMLDivElement | null };
 
   const filtered = taggedFiles.filter(f =>
     f.fileName.toLowerCase().includes(search.toLowerCase())
@@ -28,7 +27,7 @@ function FilePickerPopover({ companyId, companyName, onClose }: { companyId: str
   };
 
   return (
-    <div ref={el => { ref.current = el; }} className="absolute top-full left-1/2 -translate-x-1/2 z-50 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg p-2">
+    <div className="absolute top-full left-1/2 -translate-x-1/2 z-50 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg p-2">
       <div className="flex items-center gap-2 mb-2">
         <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
         <input
@@ -65,11 +64,12 @@ function FilePickerPopover({ companyId, companyName, onClose }: { companyId: str
   );
 }
 
-function OrgNodeCard({ company, isHighlighted }: { company: Company; isHighlighted?: boolean }) {
-  const { attachReport, updateEntityStatus } = useAppState();
+function OrgNodeCard({ company, isHighlighted, parentCompany }: { company: Company; isHighlighted?: boolean; parentCompany?: Company }) {
+  const { attachReport, updateEntityStatus, updateCompanyStatus } = useAppState();
   const [showFilePicker, setShowFilePicker] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<AuditStatus | null>(null);
+  const [alsoUpdateParent, setAlsoUpdateParent] = useState(false);
   const statusMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -95,10 +95,18 @@ function OrgNodeCard({ company, isHighlighted }: { company: Company; isHighlight
   const confirmEntityStatusChange = () => {
     if (!pendingStatus) return;
     updateEntityStatus(company.id, pendingStatus);
-    toast.success(`Entity status updated to "${pendingStatus}"`);
+    if (alsoUpdateParent && parentCompany) {
+      updateCompanyStatus(parentCompany.id, pendingStatus);
+      toast.success(`Entity and portfolio company status updated to "${pendingStatus}"`);
+    } else {
+      toast.success(`Entity status updated to "${pendingStatus}"`);
+    }
     setPendingStatus(null);
+    setAlsoUpdateParent(false);
     setShowStatusMenu(false);
   };
+
+  const hasParent = !!parentCompany && company.parentId !== null;
 
   return (
     <div className={`relative bg-white border rounded-lg shadow-sm px-4 py-3 min-w-[200px] max-w-[240px] hover:shadow-md transition-all group ${isHighlighted ? 'border-blue-400 ring-2 ring-blue-100' : 'border-gray-200'}`}>
@@ -120,7 +128,7 @@ function OrgNodeCard({ company, isHighlighted }: { company: Company; isHighlight
             {allStatuses.map(s => (
               <button
                 key={s}
-                onClick={(e) => { e.stopPropagation(); setPendingStatus(s); setShowStatusMenu(false); }}
+                onClick={(e) => { e.stopPropagation(); setPendingStatus(s); setAlsoUpdateParent(false); setShowStatusMenu(false); }}
                 className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-2 ${s === (company.entityStatus || company.status) ? 'font-semibold' : ''}`}
               >
                 <span className={`w-2 h-2 rounded-full ${s === 'Pending Review' ? 'bg-yellow-400' : s === 'Discrepancy Identified' ? 'bg-red-400' : s === 'Clarification Requested' ? 'bg-blue-400' : 'bg-green-400'}`} />
@@ -130,7 +138,6 @@ function OrgNodeCard({ company, isHighlighted }: { company: Company; isHighlight
           </div>
         )}
       </div>
-      <div className="text-xs text-gray-500 mb-2">{company.auditPeriod}</div>
       <div className="flex items-center justify-between gap-1">
         <button
           onClick={handleAttachFile}
@@ -159,13 +166,30 @@ function OrgNodeCard({ company, isHighlighted }: { company: Company; isHighlight
         />
       )}
 
-      {/* Confirmation dialog */}
-      <AlertDialog open={!!pendingStatus} onOpenChange={(open) => { if (!open) setPendingStatus(null); }}>
+      {/* Confirmation dialog with optional parent update */}
+      <AlertDialog open={!!pendingStatus} onOpenChange={(open) => { if (!open) { setPendingStatus(null); setAlsoUpdateParent(false); } }}>
         <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-gray-900">Confirm Status Change</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-500">
-              Change <span className="font-medium text-gray-700">{company.name}</span> status from <span className="font-medium text-gray-700">{company.entityStatus || company.status}</span> to <span className="font-medium text-gray-700">{pendingStatus}</span>?
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p className="text-sm text-gray-500">
+                  Change <span className="font-medium text-gray-700">{company.name}</span> status from <span className="font-medium text-gray-700">{company.entityStatus || company.status}</span> to <span className="font-medium text-gray-700">{pendingStatus}</span>?
+                </p>
+                {hasParent && (
+                  <label className="flex items-start gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={alsoUpdateParent}
+                      onChange={e => setAlsoUpdateParent(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">
+                      Also update portfolio company <span className="font-medium">{parentCompany?.name}</span> status to <span className="font-medium">{pendingStatus}</span>
+                    </span>
+                  </label>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -180,10 +204,11 @@ function OrgNodeCard({ company, isHighlighted }: { company: Company; isHighlight
 
 function TreeNode({ company, companies, highlightedEntityId }: { company: Company; companies: Company[]; highlightedEntityId?: string }) {
   const children = companies.filter(c => c.parentId === company.id);
+  const parentCompany = company.parentId ? companies.find(c => c.id === company.parentId) : undefined;
 
   return (
     <div className="flex flex-col items-center">
-      <OrgNodeCard company={company} isHighlighted={highlightedEntityId === company.id} />
+      <OrgNodeCard company={company} isHighlighted={highlightedEntityId === company.id} parentCompany={parentCompany} />
       {children.length > 0 && (
         <>
           {/* Vertical line from parent down */}
@@ -193,7 +218,7 @@ function TreeNode({ company, companies, highlightedEntityId }: { company: Compan
               <div key={child.id} className="relative flex flex-col items-center">
                 {/* Vertical line from horizontal bar to child */}
                 <div className="w-0.5 h-6 bg-border" />
-                {/* Horizontal connector: spans from center to left/right edge */}
+                {/* Horizontal connector */}
                 {children.length > 1 && (
                   <div
                     className="absolute top-0 h-0.5 bg-border"

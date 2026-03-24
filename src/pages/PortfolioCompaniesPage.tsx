@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import { Building2, ChevronRight, Search, X, ChevronDown, FileText, Eye, Archive, ArchiveRestore } from 'lucide-react';
+import { Building2, ChevronRight, Search, X, ChevronDown, FileText, Eye } from 'lucide-react';
 import { AuditStatus, entityFiles } from '@/data/mockData';
 import { toast } from '@/components/ui/sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -121,40 +121,33 @@ function FileListPopover({ companyId, onClose }: { companyId: string; onClose: (
 }
 
 export default function PortfolioCompaniesPage() {
-  const { companies, archiveCompany, unarchiveCompany, updateCompanyStatus, rcCycles, rcEntries } = useAppState();
+  const { companies, updateCompanyStatus, rcCycles, rcEntries } = useAppState();
   const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<AuditStatus | ''>('');
-  const [showArchived, setShowArchived] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<{ id: string; name: string; from: AuditStatus; to: AuditStatus } | null>(null);
   const [fileListOpen, setFileListOpen] = useState<string | null>(null);
   const [selectedCycleId, setSelectedCycleId] = useState(rcCycles.length > 0 ? rcCycles[0].id : '');
 
   const selectedCycleLabel = rcCycles.find(c => c.id === selectedCycleId)?.label || '';
 
-  // Get company names in the selected review cycle
   const companyNamesInCycle = useMemo(() => {
     if (!selectedCycleId) return new Set<string>();
     return new Set(rcEntries.filter(e => e.reviewCycleId === selectedCycleId).map(e => e.companyName.toLowerCase()));
   }, [selectedCycleId, rcEntries]);
 
   const entities = companies.filter(c => c.parentId !== null);
-  const activeEntities = entities.filter(c => !c.isArchived);
-  const archivedEntities = entities.filter(c => c.isArchived);
 
-  // Filter entities by selected review cycle (match by parent company name or own name)
   const cycleFilteredEntities = useMemo(() => {
-    const displayEntities = showArchived ? archivedEntities : activeEntities;
-    if (!selectedCycleId) return displayEntities;
-    return displayEntities.filter(entity => {
-      // Check if entity name or its parent company name is in the cycle
+    if (!selectedCycleId) return entities;
+    return entities.filter(entity => {
       if (companyNamesInCycle.has(entity.name.toLowerCase())) return true;
       const parent = companies.find(c => c.id === entity.parentId);
       if (parent && companyNamesInCycle.has(parent.name.toLowerCase())) return true;
       return false;
     });
-  }, [showArchived, activeEntities, archivedEntities, selectedCycleId, companyNamesInCycle, companies]);
+  }, [entities, selectedCycleId, companyNamesInCycle, companies]);
 
   const filtered = useMemo(() => {
     return cycleFilteredEntities.filter(c => {
@@ -177,18 +170,6 @@ export default function PortfolioCompaniesPage() {
     setPendingStatus(null);
   };
 
-  const handleArchive = (e: React.MouseEvent, companyId: string, name: string) => {
-    e.stopPropagation();
-    archiveCompany(companyId);
-    toast.success(`${name} archived`);
-  };
-
-  const handleUnarchive = (e: React.MouseEvent, companyId: string, name: string) => {
-    e.stopPropagation();
-    unarchiveCompany(companyId);
-    toast.success(`${name} restored`);
-  };
-
   return (
     <div className="h-full overflow-auto bg-gray-50 p-6">
       {/* Header */}
@@ -205,16 +186,10 @@ export default function PortfolioCompaniesPage() {
           >
             {rcCycles.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-500 ${showArchived ? 'bg-gray-100' : ''}`}
-          >
-            <Archive className="h-4 w-4" /> {showArchived ? `Archived (${archivedEntities.length})` : 'View Archived'}
-          </button>
         </div>
       </div>
 
-      {!showArchived && <StatusStats entities={cycleFilteredEntities} />}
+      <StatusStats entities={cycleFilteredEntities} />
 
       {/* Filters bar */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
@@ -264,7 +239,7 @@ export default function PortfolioCompaniesPage() {
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
-                  {showArchived ? 'No archived companies' : 'No companies match the current filters'}
+                  No companies match the current filters
                 </td>
               </tr>
             ) : (
@@ -302,26 +277,7 @@ export default function PortfolioCompaniesPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-end gap-1">
-                        {showArchived ? (
-                          <button
-                            onClick={(e) => handleUnarchive(e, company.id, company.name)}
-                            className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                            title="Restore"
-                          >
-                            <ArchiveRestore className="h-3.5 w-3.5" />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={(e) => handleArchive(e, company.id, company.name)}
-                            className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
-                            title="Archive"
-                          >
-                            <Archive className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                        <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
-                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
                     </td>
                   </tr>
                 );
