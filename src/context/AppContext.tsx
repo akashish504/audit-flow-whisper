@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, type ReactNode } from 'react';
-import { Company, AuditPeriod, companies as initialCompanies, EmailThread, emailThreads as initialEmails, DiscrepancyItem, reconciliationData, calculateVariance } from '@/data/mockData';
+import { Company, AuditPeriod, companies as initialCompanies, EmailThread, emailThreads as initialEmails, DiscrepancyItem, reconciliationData, calculateVariance, ReviewCycle, ReviewCompanyEntry, ReviewCycleLog, ReviewStage, reviewCycles as initialReviewCycles, reviewCompanyEntries as initialReviewCompanyEntries, reviewCycleLogs as initialReviewCycleLogs } from '@/data/mockData';
 
 // Extract all unique field names to build default thresholds
 const allFieldNames = new Set<string>();
@@ -54,6 +54,13 @@ interface AppState {
   unarchiveCompany: (companyId: string) => void;
   updateDiscrepancy: (id: string, updates: Partial<DiscrepancyItem>) => void;
   addCompany: (name: string, contactName: string, contactEmail: string) => void;
+  // Review Cycle Adjustments
+  rcCycles: ReviewCycle[];
+  rcEntries: ReviewCompanyEntry[];
+  rcLogs: ReviewCycleLog[];
+  addReviewCycle: (label: string) => void;
+  addOrUpdateRCEntries: (cycleId: string, entries: Omit<ReviewCompanyEntry, 'id' | 'reviewCycleId' | 'updatedAt'>[]) => void;
+  updateRCEntryStage: (entryId: string, stage: ReviewStage) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -69,6 +76,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [emails, setEmails] = useState<EmailThread[]>(initialEmails);
   const [fieldThresholds, setFieldThresholdsRaw] = useState<Record<string, number>>(defaultFieldThresholds);
   const [discrepancies, setDiscrepancies] = useState<DiscrepancyItem[]>(buildDiscrepancies(defaultFieldThresholds));
+  const [rcCycles, setRcCycles] = useState<ReviewCycle[]>(initialReviewCycles);
+  const [rcEntries, setRcEntries] = useState<ReviewCompanyEntry[]>(initialReviewCompanyEntries);
+  const [rcLogs, setRcLogs] = useState<ReviewCycleLog[]>(initialReviewCycleLogs);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
 
   const setFieldThresholds = (thresholds: Record<string, number>) => {
@@ -174,6 +184,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCompanies(prev => [...prev, newCompany]);
   };
 
+  const addReviewCycle = (label: string) => {
+    const exists = rcCycles.some(c => c.label === label);
+    if (exists) return;
+    const newCycle: ReviewCycle = {
+      id: `rc-${Date.now()}`,
+      label,
+      createdAt: new Date().toISOString(),
+    };
+    setRcCycles(prev => [newCycle, ...prev]);
+    setRcLogs(prev => [{
+      id: `rcl-${Date.now()}`,
+      action: 'Cycle Created',
+      timestamp: new Date().toISOString(),
+      user: 'admin@vantagecap.com',
+      details: `Review cycle ${label} created`,
+      reviewCycleId: newCycle.id,
+    }, ...prev]);
+  };
+
+  const addOrUpdateRCEntries = (cycleId: string, entries: Omit<ReviewCompanyEntry, 'id' | 'reviewCycleId' | 'updatedAt'>[]) => {
+    setRcEntries(prev => {
+      const updated = [...prev];
+      for (const entry of entries) {
+        const existingIdx = updated.findIndex(e => e.reviewCycleId === cycleId && e.companyName.toLowerCase() === entry.companyName.toLowerCase());
+        if (existingIdx !== -1) {
+          updated[existingIdx] = { ...updated[existingIdx], ...entry, updatedAt: new Date().toISOString() };
+        } else {
+          updated.push({
+            ...entry,
+            id: `rce-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            reviewCycleId: cycleId,
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      }
+      return updated;
+    });
+    setRcLogs(prev => [{
+      id: `rcl-${Date.now()}`,
+      action: 'CSV Uploaded',
+      timestamp: new Date().toISOString(),
+      user: 'admin@vantagecap.com',
+      details: `${entries.length} companies uploaded/updated for cycle`,
+      reviewCycleId: cycleId,
+    }, ...prev]);
+  };
+
+  const updateRCEntryStage = (entryId: string, stage: ReviewStage) => {
+    setRcEntries(prev => prev.map(e => e.id === entryId ? { ...e, stage, updatedAt: new Date().toISOString() } : e));
+    const entry = rcEntries.find(e => e.id === entryId);
+    setRcLogs(prev => [{
+      id: `rcl-${Date.now()}`,
+      action: 'Stage Changed',
+      timestamp: new Date().toISOString(),
+      user: 'admin@vantagecap.com',
+      details: `${entry?.companyName ?? 'Company'} stage changed to ${stage}`,
+      reviewCycleId: entry?.reviewCycleId,
+    }, ...prev]);
+  };
+
   return (
     <AppContext.Provider value={{
       companies, emails, discrepancies, fieldThresholds, setFieldThresholds,
@@ -181,6 +251,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addEmail, attachReport, updateCompanyStatus, updateEntityStatus,
       addAuditPeriod, setActiveAuditPeriod, bulkCreateReviewCycles,
       archiveCompany, unarchiveCompany, updateDiscrepancy, addCompany,
+      rcCycles, rcEntries, rcLogs,
+      addReviewCycle, addOrUpdateRCEntries, updateRCEntryStage,
     }}>
       {children}
     </AppContext.Provider>

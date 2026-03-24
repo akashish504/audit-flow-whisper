@@ -12,6 +12,7 @@ import FileTaggingPage from "@/pages/FileTaggingPage";
 import FileDetailPage from "@/pages/FileDetailPage";
 import EmailTaggingPage from "@/pages/EmailTaggingPage";
 import ParameterThresholdPage from "@/pages/ParameterThresholdPage";
+import ReviewCycleAdjustmentsPage from "@/pages/ReviewCycleAdjustmentsPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient({
@@ -28,7 +29,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<PortfolioCompaniesPage />} />
               <Route path="/company/:companyId" element={<CompanyDetailPage />} />
-              <Route path="/review-cycle-adjustments" element={<div className="h-full overflow-auto bg-gray-50 p-6"><h1 className="text-2xl font-bold text-gray-900">Review Cycle Adjustments</h1><p className="text-sm text-gray-500 mt-1">Coming soon</p></div>} />
+              <Route path="/review-cycle-adjustments" element={<ReviewCycleAdjustmentsPage />} />
               <Route path="/email-templates" element={<EmailTemplatesPage />} />
               <Route path="/file-tagging" element={<FileTaggingPage />} />
               <Route path="/file-tagging/:fileId" element={<FileDetailPage />} />

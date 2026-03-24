@@ -252,6 +252,55 @@ export const calculateVariance = (source: number, extracted: number, threshold =
   return { diff, percent, isFlagged };
 };
 
+export type ReviewStage = 'Scoped In' | 'Scoped Out' | 'Overdue' | 'In Progress' | 'Completed';
+
+export interface ReviewCycle {
+  id: string;
+  label: string; // e.g. "CY 24 - FY 25"
+  createdAt: string;
+}
+
+export interface ReviewCompanyEntry {
+  id: string;
+  companyName: string;
+  reviewCycleId: string;
+  stage: ReviewStage;
+  contactName: string;
+  contactEmail: string;
+  updatedAt: string;
+}
+
+export interface ReviewCycleLog {
+  id: string;
+  action: string;
+  timestamp: string;
+  user: string;
+  details: string;
+  reviewCycleId?: string;
+}
+
+export const reviewCycles: ReviewCycle[] = [
+  { id: 'rc-1', label: 'CY 24 - FY 25', createdAt: '2025-01-01T00:00:00Z' },
+  { id: 'rc-2', label: 'CY 23 - FY 24', createdAt: '2024-01-01T00:00:00Z' },
+];
+
+export const reviewCompanyEntries: ReviewCompanyEntry[] = [
+  { id: 'rce-1', companyName: 'Acme Corp', reviewCycleId: 'rc-1', stage: 'In Progress', contactName: 'James Chen', contactEmail: 'j.chen@acmecorp.com', updatedAt: '2025-03-15T00:00:00Z' },
+  { id: 'rce-2', companyName: 'Nexus Technologies', reviewCycleId: 'rc-1', stage: 'Scoped In', contactName: 'Maria Rodriguez', contactEmail: 'm.rodriguez@nexustech.io', updatedAt: '2025-03-10T00:00:00Z' },
+  { id: 'rce-3', companyName: 'Meridian Health', reviewCycleId: 'rc-1', stage: 'Overdue', contactName: 'Sarah Johnson', contactEmail: 's.johnson@meridianhealth.com', updatedAt: '2025-02-20T00:00:00Z' },
+  { id: 'rce-4', companyName: 'Apex Industries', reviewCycleId: 'rc-1', stage: 'Completed', contactName: 'Tom Harris', contactEmail: 't.harris@apex.com', updatedAt: '2025-03-01T00:00:00Z' },
+  { id: 'rce-5', companyName: 'Acme Corp', reviewCycleId: 'rc-2', stage: 'Completed', contactName: 'James Chen', contactEmail: 'j.chen@acmecorp.com', updatedAt: '2024-12-15T00:00:00Z' },
+  { id: 'rce-6', companyName: 'Nexus Technologies', reviewCycleId: 'rc-2', stage: 'Completed', contactName: 'Maria Rodriguez', contactEmail: 'm.rodriguez@nexustech.io', updatedAt: '2024-12-10T00:00:00Z' },
+  { id: 'rce-7', companyName: 'Meridian Health', reviewCycleId: 'rc-2', stage: 'Scoped Out', contactName: 'Sarah Johnson', contactEmail: 's.johnson@meridianhealth.com', updatedAt: '2024-11-20T00:00:00Z' },
+];
+
+export const reviewCycleLogs: ReviewCycleLog[] = [
+  { id: 'rcl-1', action: 'Cycle Created', timestamp: '2025-01-01T00:00:00Z', user: 'admin@vantagecap.com', details: 'Review cycle CY 24 - FY 25 created', reviewCycleId: 'rc-1' },
+  { id: 'rcl-2', action: 'CSV Uploaded', timestamp: '2025-01-05T10:00:00Z', user: 'admin@vantagecap.com', details: '4 companies uploaded for CY 24 - FY 25', reviewCycleId: 'rc-1' },
+  { id: 'rcl-3', action: 'Stage Changed', timestamp: '2025-03-15T00:00:00Z', user: 'audit@vantagecap.com', details: 'Acme Corp stage changed to In Progress', reviewCycleId: 'rc-1' },
+  { id: 'rcl-4', action: 'Cycle Created', timestamp: '2024-01-01T00:00:00Z', user: 'admin@vantagecap.com', details: 'Review cycle CY 23 - FY 24 created', reviewCycleId: 'rc-2' },
+];
+
 export const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
