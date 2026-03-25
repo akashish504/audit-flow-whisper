@@ -1,7 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { FileText, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
+import { FileText } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import type { SourceReference } from '@/data/mockData';
 
 interface FilePageViewerProps {
@@ -11,13 +10,19 @@ interface FilePageViewerProps {
   onClose: () => void;
 }
 
+const TOTAL_PAGES = 42;
+
 export function FilePageViewer({ sourceRef, fieldName, open, onClose }: FilePageViewerProps) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 42; // simulated total
+  const targetRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (sourceRef) setCurrentPage(sourceRef.page);
-  }, [sourceRef]);
+    if (open && targetRef.current) {
+      // Small delay to let dialog render
+      setTimeout(() => {
+        targetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 150);
+    }
+  }, [open, sourceRef]);
 
   if (!sourceRef) return null;
 
@@ -30,63 +35,38 @@ export function FilePageViewer({ sourceRef, fieldName, open, onClose }: FilePage
             <span className="truncate">{sourceRef.fileName}</span>
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Showing source for <span className="font-medium text-foreground">{fieldName}</span> — Page {currentPage}
+            Showing source for <span className="font-medium text-foreground">{fieldName}</span> — Page {sourceRef.page}
           </DialogDescription>
         </DialogHeader>
 
-        {/* Page viewer */}
+        {/* Scrollable full PDF view */}
         <div className="flex-1 min-h-0 bg-muted rounded-lg border border-border overflow-auto">
-          <div className="flex flex-col items-center justify-center p-8 min-h-[450px]">
-            {/* Simulated page */}
-            <div className="bg-background border border-border rounded-md shadow-sm w-full max-w-md aspect-[3/4] flex flex-col items-center justify-center gap-3 relative">
-              <div className="absolute top-3 right-3 text-[10px] text-muted-foreground font-mono">
-                Page {currentPage}
-              </div>
-              <FileText className="h-10 w-10 text-muted-foreground/30" />
-              <p className="text-sm font-medium text-foreground">{sourceRef.fileName}</p>
-              <p className="text-xs text-muted-foreground">Page {currentPage} of {totalPages}</p>
-              {currentPage === sourceRef.page && (
-                <div className="mt-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded text-xs text-primary font-medium">
-                  ✦ {fieldName} value extracted from this page
+          <div className="flex flex-col items-center gap-4 p-6">
+            {Array.from({ length: TOTAL_PAGES }, (_, i) => {
+              const page = i + 1;
+              const isTarget = page === sourceRef.page;
+              return (
+                <div
+                  key={page}
+                  ref={isTarget ? targetRef : undefined}
+                  className={`bg-background border rounded-md shadow-sm w-full max-w-md aspect-[3/4] flex flex-col items-center justify-center gap-3 relative transition-all ${
+                    isTarget ? 'border-primary ring-2 ring-primary/20' : 'border-border'
+                  }`}
+                >
+                  <div className="absolute top-3 right-3 text-[10px] text-muted-foreground font-mono">
+                    Page {page}
+                  </div>
+                  <FileText className="h-10 w-10 text-muted-foreground/30" />
+                  <p className="text-xs text-muted-foreground">Page {page} of {TOTAL_PAGES}</p>
+                  {isTarget && (
+                    <div className="mt-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded text-xs text-primary font-medium">
+                      ✦ {fieldName} value extracted from this page
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })}
           </div>
-        </div>
-
-        {/* Page navigation */}
-        <div className="flex items-center justify-between pt-2 border-t border-border">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage <= 1}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-          </Button>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Page</span>
-            <input
-              type="number"
-              min={1}
-              max={totalPages}
-              value={currentPage}
-              onChange={e => {
-                const v = parseInt(e.target.value);
-                if (v >= 1 && v <= totalPages) setCurrentPage(v);
-              }}
-              className="w-14 text-center text-sm border border-border rounded px-1.5 py-1 bg-background text-foreground"
-            />
-            <span className="text-xs text-muted-foreground">of {totalPages}</span>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage >= totalPages}
-          >
-            Next <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
         </div>
       </DialogContent>
     </Dialog>
