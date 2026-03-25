@@ -17,10 +17,11 @@ export function FilePageViewer({ sourceRef, fieldName, open, onClose }: FilePage
 
   useEffect(() => {
     if (open && targetRef.current) {
-      // Small delay to let dialog render
-      setTimeout(() => {
-        targetRef.current?.scrollIntoView({ behavior: 'auto', block: 'center' });
-      }, 150);
+      // Wait for dialog animation to complete, then scroll
+      const timer = setTimeout(() => {
+        targetRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      }, 350);
+      return () => clearTimeout(timer);
     }
   }, [open, sourceRef]);
 
