@@ -1,18 +1,25 @@
 import { useState } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { calculateVariance, formatCurrency } from '@/data/mockData';
+import type { SourceReference } from '@/data/mockData';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Pencil } from 'lucide-react';
+import { Pencil, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import { FilePageViewer } from './FilePageViewer';
 
 interface EditTarget {
   entityId: string;
   fieldName: string;
   column: 'Source_Value' | 'Extracted_Value';
   currentValue: number;
+}
+
+interface ViewerTarget {
+  sourceRef: SourceReference;
+  fieldName: string;
 }
 
 export function CompanyFinancials({ companyId, selectedEntityId }: { companyId: string; selectedEntityId?: string }) {
@@ -24,6 +31,7 @@ export function CompanyFinancials({ companyId, selectedEntityId }: { companyId: 
     : allData;
 
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
+  const [viewerTarget, setViewerTarget] = useState<ViewerTarget | null>(null);
   const [editValue, setEditValue] = useState('');
   const [acknowledged, setAcknowledged] = useState(false);
 
@@ -97,7 +105,18 @@ export function CompanyFinancials({ companyId, selectedEntityId }: { companyId: 
                       </td>
                       <td className="px-4 py-3 text-sm font-mono text-right text-muted-foreground">
                         <span className="inline-flex items-center gap-1.5 group">
-                          {formatCurrency(row.Extracted_Value)}
+                          {row.sourceRef ? (
+                            <button
+                              onClick={() => setViewerTarget({ sourceRef: row.sourceRef!, fieldName: row.Field_Name })}
+                              className="text-primary hover:text-primary/80 underline underline-offset-2 decoration-primary/40 hover:decoration-primary/80 transition-colors inline-flex items-center gap-1"
+                              title={`View in ${row.sourceRef.fileName}, page ${row.sourceRef.page}`}
+                            >
+                              {formatCurrency(row.Extracted_Value)}
+                              <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
+                          ) : (
+                            formatCurrency(row.Extracted_Value)
+                          )}
                           <button
                             onClick={() => openEdit({ entityId: row.entityId || companyId, fieldName: row.Field_Name, column: 'Extracted_Value', currentValue: row.Extracted_Value })}
                             className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
@@ -163,6 +182,14 @@ export function CompanyFinancials({ companyId, selectedEntityId }: { companyId: 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* File page viewer */}
+      <FilePageViewer
+        sourceRef={viewerTarget?.sourceRef || null}
+        fieldName={viewerTarget?.fieldName || ''}
+        open={!!viewerTarget}
+        onClose={() => setViewerTarget(null)}
+      />
     </div>
   );
 }
