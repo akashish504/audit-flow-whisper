@@ -7,15 +7,21 @@ for (const fields of Object.values(initialReconciliationData)) {
   for (const f of fields) allFieldNames.add(f.Field_Name);
 }
 const DEFAULT_THRESHOLD = 0.005;
+const DEFAULT_ABSOLUTE_THRESHOLD = 0; // 0 means disabled
 const defaultFieldThresholds: Record<string, number> = {};
-allFieldNames.forEach(name => { defaultFieldThresholds[name] = DEFAULT_THRESHOLD; });
+const defaultAbsoluteThresholds: Record<string, number> = {};
+allFieldNames.forEach(name => {
+  defaultFieldThresholds[name] = DEFAULT_THRESHOLD;
+  defaultAbsoluteThresholds[name] = DEFAULT_ABSOLUTE_THRESHOLD;
+});
 
-function buildDiscrepancies(thresholds: Record<string, number>, reconData: Record<string, ReconciliationField[]>): DiscrepancyItem[] {
+function buildDiscrepancies(thresholds: Record<string, number>, absoluteThresholds: Record<string, number>, reconData: Record<string, ReconciliationField[]>): DiscrepancyItem[] {
   const items: DiscrepancyItem[] = [];
   for (const [companyId, fields] of Object.entries(reconData)) {
     for (const field of fields) {
       const t = thresholds[field.Field_Name] ?? DEFAULT_THRESHOLD;
-      const v = calculateVariance(field.Source_Value, field.Extracted_Value, t);
+      const at = absoluteThresholds[field.Field_Name] ?? DEFAULT_ABSOLUTE_THRESHOLD;
+      const v = calculateVariance(field.Source_Value, field.Extracted_Value, t, at);
       if (v.isFlagged) {
         items.push({
           id: `disc-${companyId}-${field.entityId || companyId}-${field.Field_Name}`,
@@ -40,7 +46,9 @@ interface AppState {
   emails: EmailThread[];
   discrepancies: DiscrepancyItem[];
   fieldThresholds: Record<string, number>;
+  absoluteThresholds: Record<string, number>;
   setFieldThresholds: (thresholds: Record<string, number>) => void;
+  setAbsoluteThresholds: (thresholds: Record<string, number>) => void;
   selectedCompanyId: string | null;
   setSelectedCompanyId: (id: string | null) => void;
   addEmail: (email: EmailThread) => void;
@@ -75,8 +83,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [companies, setCompanies] = useState<Company[]>(initialCompanies);
   const [emails, setEmails] = useState<EmailThread[]>(initialEmails);
   const [fieldThresholds, setFieldThresholdsRaw] = useState<Record<string, number>>(defaultFieldThresholds);
+  const [absoluteThresholds, setAbsoluteThresholdsRaw] = useState<Record<string, number>>(defaultAbsoluteThresholds);
   const [reconData, setReconData] = useState<Record<string, ReconciliationField[]>>(initialReconciliationData);
-  const [discrepancies, setDiscrepancies] = useState<DiscrepancyItem[]>(buildDiscrepancies(defaultFieldThresholds, initialReconciliationData));
+  const [discrepancies, setDiscrepancies] = useState<DiscrepancyItem[]>(buildDiscrepancies(defaultFieldThresholds, defaultAbsoluteThresholds, initialReconciliationData));
   const [rcCycles, setRcCycles] = useState<ReviewCycle[]>(initialReviewCycles);
   const [rcEntries, setRcEntries] = useState<ReviewCompanyEntry[]>(initialReviewCompanyEntries);
   const [rcLogs, setRcLogs] = useState<ReviewCycleLog[]>(initialReviewCycleLogs);
@@ -84,7 +93,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setFieldThresholds = (thresholds: Record<string, number>) => {
     setFieldThresholdsRaw(thresholds);
-    setDiscrepancies(buildDiscrepancies(thresholds, reconData));
+    setDiscrepancies(buildDiscrepancies(thresholds, absoluteThresholds, reconData));
+  };
+
+  const setAbsoluteThresholds = (thresholds: Record<string, number>) => {
+    setAbsoluteThresholdsRaw(thresholds);
+    setDiscrepancies(buildDiscrepancies(fieldThresholds, thresholds, reconData));
   };
 
   const addEmail = (email: EmailThread) => setEmails(prev => [email, ...prev]);
@@ -254,14 +268,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         rows[idx] = { ...rows[idx], [column]: newValue };
         updated[companyId] = rows;
       }
-      setDiscrepancies(buildDiscrepancies(fieldThresholds, updated));
+      setDiscrepancies(buildDiscrepancies(fieldThresholds, absoluteThresholds, updated));
       return updated;
     });
   };
 
   return (
     <AppContext.Provider value={{
-      companies, emails, discrepancies, fieldThresholds, setFieldThresholds,
+      companies, emails, discrepancies, fieldThresholds, absoluteThresholds, setFieldThresholds, setAbsoluteThresholds,
       selectedCompanyId, setSelectedCompanyId,
       addEmail, attachReport, updateCompanyStatus, updateEntityStatus,
       addAuditPeriod, setActiveAuditPeriod, bulkCreateReviewCycles,

@@ -23,7 +23,7 @@ interface ViewerTarget {
 }
 
 export function CompanyFinancials({ companyId, selectedEntityId }: { companyId: string; selectedEntityId?: string }) {
-  const { fieldThresholds, reconciliationDataState, updateReconciliationValue } = useAppState();
+  const { fieldThresholds, absoluteThresholds, reconciliationDataState, updateReconciliationValue } = useAppState();
   const allData = reconciliationDataState[companyId] || [];
 
   const data = selectedEntityId
@@ -87,7 +87,7 @@ export function CompanyFinancials({ companyId, selectedEntityId }: { companyId: 
               </thead>
               <tbody className="divide-y divide-border">
                 {rows.map((row, idx) => {
-                  const v = calculateVariance(row.Source_Value, row.Extracted_Value, fieldThresholds[row.Field_Name] ?? 0.005);
+                  const v = calculateVariance(row.Source_Value, row.Extracted_Value, fieldThresholds[row.Field_Name] ?? 0.005, absoluteThresholds[row.Field_Name]);
                   return (
                     <tr key={`${row.Field_Name}-${idx}`} className={`${v.isFlagged ? 'bg-destructive/10' : 'hover:bg-muted/30'} transition-all`}>
                       <td className="px-4 py-3 text-sm text-foreground">{row.Field_Name}</td>
