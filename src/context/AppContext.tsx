@@ -185,6 +185,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setDiscrepancies(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
   };
 
+  const addManualDiscrepancy = (companyId: string, entityId: string, entityName: string, discrepancyType: string, discrepancyText: string) => {
+    const newItem: DiscrepancyItem = {
+      id: `disc-manual-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      fieldName: discrepancyType,
+      sourceValue: 0,
+      extractedValue: 0,
+      entityId,
+      entityName,
+      enabled: true,
+      remarks: '',
+      discrepancyType,
+      discrepancyText,
+      discrepancyStatus: 'Open',
+      discrepancyCategory: 'manual',
+    };
+    setDiscrepancies(prev => [newItem, ...prev]);
+  };
+
   const addCompany = (name: string, contactName: string, contactEmail: string) => {
     const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).slice(2, 6);
     const newCompany: Company = {
@@ -282,7 +300,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       selectedCompanyId, setSelectedCompanyId,
       addEmail, attachReport, updateCompanyStatus, updateEntityStatus,
       addAuditPeriod, setActiveAuditPeriod, bulkCreateReviewCycles,
-      updateDiscrepancy, addCompany,
+      updateDiscrepancy, addManualDiscrepancy, addCompany,
       rcCycles, rcEntries, rcLogs,
       addReviewCycle, addOrUpdateRCEntries, updateRCEntryStage,
       reconciliationDataState: reconData, updateReconciliationValue,
