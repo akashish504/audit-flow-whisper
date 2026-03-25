@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, type ReactNode } from 'react';
-import { Company, AuditPeriod, companies as initialCompanies, EmailThread, emailThreads as initialEmails, DiscrepancyItem, reconciliationData as initialReconciliationData, calculateVariance, ReviewCycle, ReviewCompanyEntry, ReviewCycleLog, ReviewStage, reviewCycles as initialReviewCycles, reviewCompanyEntries as initialReviewCompanyEntries, reviewCycleLogs as initialReviewCycleLogs, ReconciliationField } from '@/data/mockData';
+import { Company, AuditPeriod, companies as initialCompanies, EmailThread, emailThreads as initialEmails, DiscrepancyItem, DiscrepancyStatus, reconciliationData as initialReconciliationData, calculateVariance, ReviewCycle, ReviewCompanyEntry, ReviewCycleLog, ReviewStage, reviewCycles as initialReviewCycles, reviewCompanyEntries as initialReviewCompanyEntries, reviewCycleLogs as initialReviewCycleLogs, ReconciliationField } from '@/data/mockData';
 
 // Extract all unique field names to build default thresholds
 const allFieldNames = new Set<string>();
@@ -32,8 +32,10 @@ function buildDiscrepancies(thresholds: Record<string, number>, absoluteThreshol
           entityName: field.entityName || companyId,
           enabled: true,
           remarks: '',
-          l1Reviewer: '',
-          l2Reviewer: '',
+          discrepancyType: field.Field_Name.toLowerCase().includes('ebitda') ? 'EBITDA' : field.Field_Name.toLowerCase().includes('cogs') ? 'COGS' : 'Other',
+          discrepancyText: `Variance detected in ${field.Field_Name}`,
+          discrepancyStatus: 'Open',
+          discrepancyCategory: 'system',
         });
       }
     }
@@ -59,6 +61,7 @@ interface AppState {
   setActiveAuditPeriod: (companyId: string, periodId: string) => void;
   bulkCreateReviewCycles: (rows: { companyId: string; periodLabel: string }[]) => void;
   updateDiscrepancy: (id: string, updates: Partial<DiscrepancyItem>) => void;
+  addManualDiscrepancy: (companyId: string, entityId: string, entityName: string, discrepancyType: string, discrepancyText: string) => void;
   addCompany: (name: string, contactName: string, contactEmail: string) => void;
   // Review Cycle Adjustments
   rcCycles: ReviewCycle[];
@@ -182,6 +185,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setDiscrepancies(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
   };
 
+  const addManualDiscrepancy = (companyId: string, entityId: string, entityName: string, discrepancyType: string, discrepancyText: string) => {
+    const newItem: DiscrepancyItem = {
+      id: `disc-manual-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      fieldName: discrepancyType,
+      sourceValue: 0,
+      extractedValue: 0,
+      entityId,
+      entityName,
+      enabled: true,
+      remarks: '',
+      discrepancyType,
+      discrepancyText,
+      discrepancyStatus: 'Open',
+      discrepancyCategory: 'manual',
+    };
+    setDiscrepancies(prev => [newItem, ...prev]);
+  };
+
   const addCompany = (name: string, contactName: string, contactEmail: string) => {
     const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).slice(2, 6);
     const newCompany: Company = {
@@ -279,7 +300,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       selectedCompanyId, setSelectedCompanyId,
       addEmail, attachReport, updateCompanyStatus, updateEntityStatus,
       addAuditPeriod, setActiveAuditPeriod, bulkCreateReviewCycles,
-      updateDiscrepancy, addCompany,
+      updateDiscrepancy, addManualDiscrepancy, addCompany,
       rcCycles, rcEntries, rcLogs,
       addReviewCycle, addOrUpdateRCEntries, updateRCEntryStage,
       reconciliationDataState: reconData, updateReconciliationValue,

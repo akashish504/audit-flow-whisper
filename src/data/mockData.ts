@@ -38,6 +38,9 @@ export interface ReconciliationField {
   sourceRef?: SourceReference;
 }
 
+export type DiscrepancyStatus = 'Open' | 'Under Review' | 'Resolved' | 'Dismissed';
+export type DiscrepancyCategory = 'system' | 'manual';
+
 export interface DiscrepancyItem {
   id: string;
   fieldName: string;
@@ -47,8 +50,10 @@ export interface DiscrepancyItem {
   entityName: string;
   enabled: boolean;
   remarks: string;
-  l1Reviewer: string;
-  l2Reviewer: string;
+  discrepancyType: string;
+  discrepancyText: string;
+  discrepancyStatus: DiscrepancyStatus;
+  discrepancyCategory: DiscrepancyCategory;
 }
 
 export interface EntityFile {
