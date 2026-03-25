@@ -31,6 +31,7 @@ export function CompanyFinancials({ companyId, selectedEntityId }: { companyId: 
     : allData;
 
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
+  const [viewerTarget, setViewerTarget] = useState<ViewerTarget | null>(null);
   const [editValue, setEditValue] = useState('');
   const [acknowledged, setAcknowledged] = useState(false);
 
