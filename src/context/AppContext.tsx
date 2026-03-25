@@ -32,8 +32,10 @@ function buildDiscrepancies(thresholds: Record<string, number>, absoluteThreshol
           entityName: field.entityName || companyId,
           enabled: true,
           remarks: '',
-          l1Reviewer: '',
-          l2Reviewer: '',
+          discrepancyType: field.Field_Name.toLowerCase().includes('ebitda') ? 'EBITDA' : field.Field_Name.toLowerCase().includes('cogs') ? 'COGS' : 'Other',
+          discrepancyText: `Variance detected in ${field.Field_Name}`,
+          discrepancyStatus: 'Open',
+          discrepancyCategory: 'system',
         });
       }
     }
