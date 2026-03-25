@@ -105,7 +105,18 @@ export function CompanyFinancials({ companyId, selectedEntityId }: { companyId: 
                       </td>
                       <td className="px-4 py-3 text-sm font-mono text-right text-muted-foreground">
                         <span className="inline-flex items-center gap-1.5 group">
-                          {formatCurrency(row.Extracted_Value)}
+                          {row.sourceRef ? (
+                            <button
+                              onClick={() => setViewerTarget({ sourceRef: row.sourceRef!, fieldName: row.Field_Name })}
+                              className="text-primary hover:text-primary/80 underline underline-offset-2 decoration-primary/40 hover:decoration-primary/80 transition-colors inline-flex items-center gap-1"
+                              title={`View in ${row.sourceRef.fileName}, page ${row.sourceRef.page}`}
+                            >
+                              {formatCurrency(row.Extracted_Value)}
+                              <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
+                          ) : (
+                            formatCurrency(row.Extracted_Value)
+                          )}
                           <button
                             onClick={() => openEdit({ entityId: row.entityId || companyId, fieldName: row.Field_Name, column: 'Extracted_Value', currentValue: row.Extracted_Value })}
                             className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
