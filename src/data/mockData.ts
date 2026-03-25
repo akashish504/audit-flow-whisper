@@ -23,12 +23,19 @@ export interface Company {
   geolocation?: string;
 }
 
+export interface SourceReference {
+  fileId: string;
+  fileName: string;
+  page: number;
+}
+
 export interface ReconciliationField {
   Field_Name: string;
   Source_Value: number;
   Extracted_Value: number;
   entityId?: string;
   entityName?: string;
+  sourceRef?: SourceReference;
 }
 
 export interface DiscrepancyItem {
@@ -142,40 +149,40 @@ export const entityFiles: EntityFile[] = [
 
 export const reconciliationData: Record<string, ReconciliationField[]> = {
   acme: [
-    { Field_Name: 'Revenue', Source_Value: 142500000, Extracted_Value: 142500000, entityId: 'acme', entityName: 'Acme Corp' },
-    { Field_Name: 'COGS', Source_Value: 85200000, Extracted_Value: 85950000, entityId: 'acme', entityName: 'Acme Corp' },
-    { Field_Name: 'Gross Profit', Source_Value: 57300000, Extracted_Value: 56550000, entityId: 'acme', entityName: 'Acme Corp' },
-    { Field_Name: 'EBITDA', Source_Value: 28400000, Extracted_Value: 28400000, entityId: 'acme', entityName: 'Acme Corp' },
-    { Field_Name: 'Net Income', Source_Value: 18200000, Extracted_Value: 18350000, entityId: 'acme', entityName: 'Acme Corp' },
-    { Field_Name: 'Total Assets', Source_Value: 312000000, Extracted_Value: 312000000, entityId: 'acme', entityName: 'Acme Corp' },
-    { Field_Name: 'Total Liabilities', Source_Value: 178000000, Extracted_Value: 179200000, entityId: 'acme', entityName: 'Acme Corp' },
-    { Field_Name: 'Shareholders Equity', Source_Value: 134000000, Extracted_Value: 132800000, entityId: 'acme', entityName: 'Acme Corp' },
-    { Field_Name: 'Revenue', Source_Value: 32000000, Extracted_Value: 32150000, entityId: 'acme-eu', entityName: 'Acme Europe GmbH' },
-    { Field_Name: 'COGS', Source_Value: 18500000, Extracted_Value: 18500000, entityId: 'acme-eu', entityName: 'Acme Europe GmbH' },
-    { Field_Name: 'Net Income', Source_Value: 6200000, Extracted_Value: 6200000, entityId: 'acme-eu', entityName: 'Acme Europe GmbH' },
-    { Field_Name: 'Revenue', Source_Value: 45000000, Extracted_Value: 45000000, entityId: 'acme-asia', entityName: 'Acme Asia Pacific' },
-    { Field_Name: 'COGS', Source_Value: 22000000, Extracted_Value: 22000000, entityId: 'acme-asia', entityName: 'Acme Asia Pacific' },
-    { Field_Name: 'Net Income', Source_Value: 11500000, Extracted_Value: 11500000, entityId: 'acme-asia', entityName: 'Acme Asia Pacific' },
+    { Field_Name: 'Revenue', Source_Value: 142500000, Extracted_Value: 142500000, entityId: 'acme', entityName: 'Acme Corp', sourceRef: { fileId: 'ef1', fileName: 'Acme_Corp_Q4_2024_Audit.pdf', page: 10 } },
+    { Field_Name: 'COGS', Source_Value: 85200000, Extracted_Value: 85950000, entityId: 'acme', entityName: 'Acme Corp', sourceRef: { fileId: 'ef1', fileName: 'Acme_Corp_Q4_2024_Audit.pdf', page: 12 } },
+    { Field_Name: 'Gross Profit', Source_Value: 57300000, Extracted_Value: 56550000, entityId: 'acme', entityName: 'Acme Corp', sourceRef: { fileId: 'ef1', fileName: 'Acme_Corp_Q4_2024_Audit.pdf', page: 14 } },
+    { Field_Name: 'EBITDA', Source_Value: 28400000, Extracted_Value: 28400000, entityId: 'acme', entityName: 'Acme Corp', sourceRef: { fileId: 'ef1', fileName: 'Acme_Corp_Q4_2024_Audit.pdf', page: 18 } },
+    { Field_Name: 'Net Income', Source_Value: 18200000, Extracted_Value: 18350000, entityId: 'acme', entityName: 'Acme Corp', sourceRef: { fileId: 'ef1', fileName: 'Acme_Corp_Q4_2024_Audit.pdf', page: 22 } },
+    { Field_Name: 'Total Assets', Source_Value: 312000000, Extracted_Value: 312000000, entityId: 'acme', entityName: 'Acme Corp', sourceRef: { fileId: 'ef1', fileName: 'Acme_Corp_Q4_2024_Audit.pdf', page: 28 } },
+    { Field_Name: 'Total Liabilities', Source_Value: 178000000, Extracted_Value: 179200000, entityId: 'acme', entityName: 'Acme Corp', sourceRef: { fileId: 'ef1', fileName: 'Acme_Corp_Q4_2024_Audit.pdf', page: 30 } },
+    { Field_Name: 'Shareholders Equity', Source_Value: 134000000, Extracted_Value: 132800000, entityId: 'acme', entityName: 'Acme Corp', sourceRef: { fileId: 'ef1', fileName: 'Acme_Corp_Q4_2024_Audit.pdf', page: 32 } },
+    { Field_Name: 'Revenue', Source_Value: 32000000, Extracted_Value: 32150000, entityId: 'acme-eu', entityName: 'Acme Europe GmbH', sourceRef: { fileId: 'ef2', fileName: 'Acme_EU_Q4_2024_Audit.pdf', page: 8 } },
+    { Field_Name: 'COGS', Source_Value: 18500000, Extracted_Value: 18500000, entityId: 'acme-eu', entityName: 'Acme Europe GmbH', sourceRef: { fileId: 'ef2', fileName: 'Acme_EU_Q4_2024_Audit.pdf', page: 10 } },
+    { Field_Name: 'Net Income', Source_Value: 6200000, Extracted_Value: 6200000, entityId: 'acme-eu', entityName: 'Acme Europe GmbH', sourceRef: { fileId: 'ef2', fileName: 'Acme_EU_Q4_2024_Audit.pdf', page: 15 } },
+    { Field_Name: 'Revenue', Source_Value: 45000000, Extracted_Value: 45000000, entityId: 'acme-asia', entityName: 'Acme Asia Pacific', sourceRef: { fileId: 'ef3', fileName: 'Acme_Asia_Q4_2024_Audit.pdf', page: 6 } },
+    { Field_Name: 'COGS', Source_Value: 22000000, Extracted_Value: 22000000, entityId: 'acme-asia', entityName: 'Acme Asia Pacific', sourceRef: { fileId: 'ef3', fileName: 'Acme_Asia_Q4_2024_Audit.pdf', page: 8 } },
+    { Field_Name: 'Net Income', Source_Value: 11500000, Extracted_Value: 11500000, entityId: 'acme-asia', entityName: 'Acme Asia Pacific', sourceRef: { fileId: 'ef3', fileName: 'Acme_Asia_Q4_2024_Audit.pdf', page: 11 } },
   ],
   meridian: [
-    { Field_Name: 'Revenue', Source_Value: 89300000, Extracted_Value: 89300000, entityId: 'meridian', entityName: 'Meridian Health' },
-    { Field_Name: 'COGS', Source_Value: 41200000, Extracted_Value: 41800000, entityId: 'meridian', entityName: 'Meridian Health' },
-    { Field_Name: 'Gross Profit', Source_Value: 48100000, Extracted_Value: 47500000, entityId: 'meridian', entityName: 'Meridian Health' },
-    { Field_Name: 'EBITDA', Source_Value: 22100000, Extracted_Value: 21850000, entityId: 'meridian', entityName: 'Meridian Health' },
-    { Field_Name: 'Net Income', Source_Value: 14500000, Extracted_Value: 14500000, entityId: 'meridian', entityName: 'Meridian Health' },
-    { Field_Name: 'Total Assets', Source_Value: 198000000, Extracted_Value: 198000000, entityId: 'meridian', entityName: 'Meridian Health' },
-    { Field_Name: 'Total Liabilities', Source_Value: 112000000, Extracted_Value: 112700000, entityId: 'meridian', entityName: 'Meridian Health' },
-    { Field_Name: 'Shareholders Equity', Source_Value: 86000000, Extracted_Value: 85300000, entityId: 'meridian', entityName: 'Meridian Health' },
-    { Field_Name: 'Revenue', Source_Value: 25000000, Extracted_Value: 25300000, entityId: 'meridian-rx', entityName: 'Meridian Pharma' },
-    { Field_Name: 'COGS', Source_Value: 12000000, Extracted_Value: 12000000, entityId: 'meridian-rx', entityName: 'Meridian Pharma' },
+    { Field_Name: 'Revenue', Source_Value: 89300000, Extracted_Value: 89300000, entityId: 'meridian', entityName: 'Meridian Health', sourceRef: { fileId: 'ef7', fileName: 'Meridian_Health_Q4_2024.pdf', page: 9 } },
+    { Field_Name: 'COGS', Source_Value: 41200000, Extracted_Value: 41800000, entityId: 'meridian', entityName: 'Meridian Health', sourceRef: { fileId: 'ef7', fileName: 'Meridian_Health_Q4_2024.pdf', page: 11 } },
+    { Field_Name: 'Gross Profit', Source_Value: 48100000, Extracted_Value: 47500000, entityId: 'meridian', entityName: 'Meridian Health', sourceRef: { fileId: 'ef7', fileName: 'Meridian_Health_Q4_2024.pdf', page: 13 } },
+    { Field_Name: 'EBITDA', Source_Value: 22100000, Extracted_Value: 21850000, entityId: 'meridian', entityName: 'Meridian Health', sourceRef: { fileId: 'ef7', fileName: 'Meridian_Health_Q4_2024.pdf', page: 16 } },
+    { Field_Name: 'Net Income', Source_Value: 14500000, Extracted_Value: 14500000, entityId: 'meridian', entityName: 'Meridian Health', sourceRef: { fileId: 'ef7', fileName: 'Meridian_Health_Q4_2024.pdf', page: 20 } },
+    { Field_Name: 'Total Assets', Source_Value: 198000000, Extracted_Value: 198000000, entityId: 'meridian', entityName: 'Meridian Health', sourceRef: { fileId: 'ef7', fileName: 'Meridian_Health_Q4_2024.pdf', page: 24 } },
+    { Field_Name: 'Total Liabilities', Source_Value: 112000000, Extracted_Value: 112700000, entityId: 'meridian', entityName: 'Meridian Health', sourceRef: { fileId: 'ef7', fileName: 'Meridian_Health_Q4_2024.pdf', page: 26 } },
+    { Field_Name: 'Shareholders Equity', Source_Value: 86000000, Extracted_Value: 85300000, entityId: 'meridian', entityName: 'Meridian Health', sourceRef: { fileId: 'ef7', fileName: 'Meridian_Health_Q4_2024.pdf', page: 28 } },
+    { Field_Name: 'Revenue', Source_Value: 25000000, Extracted_Value: 25300000, entityId: 'meridian-rx', entityName: 'Meridian Pharma', sourceRef: { fileId: 'ef8', fileName: 'Meridian_Pharma_Q4_2024.pdf', page: 7 } },
+    { Field_Name: 'COGS', Source_Value: 12000000, Extracted_Value: 12000000, entityId: 'meridian-rx', entityName: 'Meridian Pharma', sourceRef: { fileId: 'ef8', fileName: 'Meridian_Pharma_Q4_2024.pdf', page: 9 } },
   ],
   nexus: [
-    { Field_Name: 'Revenue', Source_Value: 67800000, Extracted_Value: 67800000, entityId: 'nexus', entityName: 'Nexus Technologies' },
-    { Field_Name: 'COGS', Source_Value: 28900000, Extracted_Value: 28900000, entityId: 'nexus', entityName: 'Nexus Technologies' },
-    { Field_Name: 'Gross Profit', Source_Value: 38900000, Extracted_Value: 38900000, entityId: 'nexus', entityName: 'Nexus Technologies' },
-    { Field_Name: 'EBITDA', Source_Value: 15200000, Extracted_Value: 15200000, entityId: 'nexus', entityName: 'Nexus Technologies' },
-    { Field_Name: 'Net Income', Source_Value: 9800000, Extracted_Value: 9800000, entityId: 'nexus', entityName: 'Nexus Technologies' },
-    { Field_Name: 'Total Assets', Source_Value: 145000000, Extracted_Value: 145000000, entityId: 'nexus', entityName: 'Nexus Technologies' },
+    { Field_Name: 'Revenue', Source_Value: 67800000, Extracted_Value: 67800000, entityId: 'nexus', entityName: 'Nexus Technologies', sourceRef: { fileId: 'ef5', fileName: 'Nexus_Tech_Q4_2024_Report.pdf', page: 8 } },
+    { Field_Name: 'COGS', Source_Value: 28900000, Extracted_Value: 28900000, entityId: 'nexus', entityName: 'Nexus Technologies', sourceRef: { fileId: 'ef5', fileName: 'Nexus_Tech_Q4_2024_Report.pdf', page: 10 } },
+    { Field_Name: 'Gross Profit', Source_Value: 38900000, Extracted_Value: 38900000, entityId: 'nexus', entityName: 'Nexus Technologies', sourceRef: { fileId: 'ef5', fileName: 'Nexus_Tech_Q4_2024_Report.pdf', page: 12 } },
+    { Field_Name: 'EBITDA', Source_Value: 15200000, Extracted_Value: 15200000, entityId: 'nexus', entityName: 'Nexus Technologies', sourceRef: { fileId: 'ef5', fileName: 'Nexus_Tech_Q4_2024_Report.pdf', page: 15 } },
+    { Field_Name: 'Net Income', Source_Value: 9800000, Extracted_Value: 9800000, entityId: 'nexus', entityName: 'Nexus Technologies', sourceRef: { fileId: 'ef5', fileName: 'Nexus_Tech_Q4_2024_Report.pdf', page: 18 } },
+    { Field_Name: 'Total Assets', Source_Value: 145000000, Extracted_Value: 145000000, entityId: 'nexus', entityName: 'Nexus Technologies', sourceRef: { fileId: 'ef5', fileName: 'Nexus_Tech_Q4_2024_Report.pdf', page: 22 } },
   ],
 };
 
