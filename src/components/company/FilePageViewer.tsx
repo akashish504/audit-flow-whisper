@@ -14,16 +14,29 @@ const TOTAL_PAGES = 42;
 
 export function FilePageViewer({ sourceRef, fieldName, open, onClose }: FilePageViewerProps) {
   const targetRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (open && targetRef.current) {
-      // Wait for dialog animation to complete, then scroll
-      const timer = setTimeout(() => {
-        targetRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
-      }, 350);
-      return () => clearTimeout(timer);
-    }
-  }, [open, sourceRef]);
+    if (!open || !targetRef.current) return;
+
+    // Wait for dialog animation to complete, then scroll dialog viewport itself
+    const timer = setTimeout(() => {
+      const target = targetRef.current;
+      const container = scrollContainerRef.current;
+
+      if (!target) return;
+
+      if (container) {
+        const targetTop = target.offsetTop - container.offsetTop;
+        container.scrollTo({ top: Math.max(targetTop - 16, 0), behavior: 'auto' });
+        return;
+      }
+
+      target.scrollIntoView({ behavior: 'auto', block: 'start' });
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [open, sourceRef?.fileId, sourceRef?.page]);
 
   if (!sourceRef) return null;
 
@@ -41,7 +54,7 @@ export function FilePageViewer({ sourceRef, fieldName, open, onClose }: FilePage
         </DialogHeader>
 
         {/* Scrollable full PDF view */}
-        <div className="flex-1 min-h-0 bg-muted rounded-lg border border-border overflow-auto">
+        <div ref={scrollContainerRef} className="flex-1 min-h-0 bg-muted rounded-lg border border-border overflow-auto">
           <div className="flex flex-col items-center gap-4 p-6">
             {Array.from({ length: TOTAL_PAGES }, (_, i) => {
               const page = i + 1;
