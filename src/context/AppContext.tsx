@@ -3,16 +3,16 @@ import { Company, AuditPeriod, companies as initialCompanies, EmailThread, email
 
 // Extract all unique field names to build default thresholds
 const allFieldNames = new Set<string>();
-for (const fields of Object.values(reconciliationData)) {
+for (const fields of Object.values(initialReconciliationData)) {
   for (const f of fields) allFieldNames.add(f.Field_Name);
 }
 const DEFAULT_THRESHOLD = 0.005;
 const defaultFieldThresholds: Record<string, number> = {};
 allFieldNames.forEach(name => { defaultFieldThresholds[name] = DEFAULT_THRESHOLD; });
 
-function buildDiscrepancies(thresholds: Record<string, number>): DiscrepancyItem[] {
+function buildDiscrepancies(thresholds: Record<string, number>, reconData: Record<string, ReconciliationField[]>): DiscrepancyItem[] {
   const items: DiscrepancyItem[] = [];
-  for (const [companyId, fields] of Object.entries(reconciliationData)) {
+  for (const [companyId, fields] of Object.entries(reconData)) {
     for (const field of fields) {
       const t = thresholds[field.Field_Name] ?? DEFAULT_THRESHOLD;
       const v = calculateVariance(field.Source_Value, field.Extracted_Value, t);
@@ -75,7 +75,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [companies, setCompanies] = useState<Company[]>(initialCompanies);
   const [emails, setEmails] = useState<EmailThread[]>(initialEmails);
   const [fieldThresholds, setFieldThresholdsRaw] = useState<Record<string, number>>(defaultFieldThresholds);
-  const [discrepancies, setDiscrepancies] = useState<DiscrepancyItem[]>(buildDiscrepancies(defaultFieldThresholds));
+  const [reconData, setReconData] = useState<Record<string, ReconciliationField[]>>(initialReconciliationData);
+  const [discrepancies, setDiscrepancies] = useState<DiscrepancyItem[]>(buildDiscrepancies(defaultFieldThresholds, initialReconciliationData));
   const [rcCycles, setRcCycles] = useState<ReviewCycle[]>(initialReviewCycles);
   const [rcEntries, setRcEntries] = useState<ReviewCompanyEntry[]>(initialReviewCompanyEntries);
   const [rcLogs, setRcLogs] = useState<ReviewCycleLog[]>(initialReviewCycleLogs);
@@ -83,7 +84,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setFieldThresholds = (thresholds: Record<string, number>) => {
     setFieldThresholdsRaw(thresholds);
-    setDiscrepancies(buildDiscrepancies(thresholds));
+    setDiscrepancies(buildDiscrepancies(thresholds, reconData));
   };
 
   const addEmail = (email: EmailThread) => setEmails(prev => [email, ...prev]);
@@ -244,6 +245,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, ...prev]);
   };
 
+  const updateReconciliationValue = (companyId: string, entityId: string, fieldName: string, column: 'Source_Value' | 'Extracted_Value', newValue: number) => {
+    setReconData(prev => {
+      const updated = { ...prev };
+      const rows = updated[companyId] ? [...updated[companyId]] : [];
+      const idx = rows.findIndex(r => r.entityId === entityId && r.Field_Name === fieldName);
+      if (idx !== -1) {
+        rows[idx] = { ...rows[idx], [column]: newValue };
+        updated[companyId] = rows;
+      }
+      setDiscrepancies(buildDiscrepancies(fieldThresholds, updated));
+      return updated;
+    });
+  };
+
   return (
     <AppContext.Provider value={{
       companies, emails, discrepancies, fieldThresholds, setFieldThresholds,
@@ -253,6 +268,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updateDiscrepancy, addCompany,
       rcCycles, rcEntries, rcLogs,
       addReviewCycle, addOrUpdateRCEntries, updateRCEntryStage,
+      reconciliationDataState: reconData, updateReconciliationValue,
     }}>
       {children}
     </AppContext.Provider>
