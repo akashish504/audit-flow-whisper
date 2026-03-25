@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, type ReactNode } from 'react';
-import { Company, AuditPeriod, companies as initialCompanies, EmailThread, emailThreads as initialEmails, DiscrepancyItem, reconciliationData, calculateVariance, ReviewCycle, ReviewCompanyEntry, ReviewCycleLog, ReviewStage, reviewCycles as initialReviewCycles, reviewCompanyEntries as initialReviewCompanyEntries, reviewCycleLogs as initialReviewCycleLogs } from '@/data/mockData';
+import { Company, AuditPeriod, companies as initialCompanies, EmailThread, emailThreads as initialEmails, DiscrepancyItem, reconciliationData as initialReconciliationData, calculateVariance, ReviewCycle, ReviewCompanyEntry, ReviewCycleLog, ReviewStage, reviewCycles as initialReviewCycles, reviewCompanyEntries as initialReviewCompanyEntries, reviewCycleLogs as initialReviewCycleLogs, ReconciliationField } from '@/data/mockData';
 
 // Extract all unique field names to build default thresholds
 const allFieldNames = new Set<string>();
@@ -59,6 +59,8 @@ interface AppState {
   addReviewCycle: (label: string) => void;
   addOrUpdateRCEntries: (cycleId: string, entries: Omit<ReviewCompanyEntry, 'id' | 'reviewCycleId' | 'updatedAt'>[]) => void;
   updateRCEntryStage: (entryId: string, stage: ReviewStage) => void;
+  reconciliationDataState: Record<string, ReconciliationField[]>;
+  updateReconciliationValue: (companyId: string, entityId: string, fieldName: string, column: 'Source_Value' | 'Extracted_Value', newValue: number) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
