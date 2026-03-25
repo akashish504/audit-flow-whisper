@@ -3,73 +3,99 @@ import { useAppState } from '@/context/AppContext';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { SlidersHorizontal } from 'lucide-react';
+import { formatCurrency } from '@/data/mockData';
 
 export default function ParameterThresholdPage() {
-  const { fieldThresholds, setFieldThresholds } = useAppState();
-  const [local, setLocal] = useState<Record<string, number>>(
+  const { fieldThresholds, absoluteThresholds, setFieldThresholds, setAbsoluteThresholds } = useAppState();
+  const [localPercent, setLocalPercent] = useState<Record<string, number>>(
     Object.fromEntries(Object.entries(fieldThresholds).map(([k, v]) => [k, v * 100]))
   );
+  const [localAbsolute, setLocalAbsolute] = useState<Record<string, number>>(
+    Object.fromEntries(Object.entries(absoluteThresholds).map(([k, v]) => [k, v]))
+  );
 
-  const handleChange = (field: string, value: string) => {
+  const handlePercentChange = (field: string, value: string) => {
     const v = parseFloat(value);
     if (!isNaN(v) && v >= 0 && v <= 100) {
-      setLocal(prev => ({ ...prev, [field]: v }));
+      setLocalPercent(prev => ({ ...prev, [field]: v }));
     }
   };
 
-  const isDirty = Object.keys(local).some(
-    k => Math.abs(local[k] - fieldThresholds[k] * 100) > 0.001
+  const handleAbsoluteChange = (field: string, value: string) => {
+    const v = parseFloat(value);
+    if (!isNaN(v) && v >= 0) {
+      setLocalAbsolute(prev => ({ ...prev, [field]: v }));
+    }
+  };
+
+  const isDirty = Object.keys(localPercent).some(
+    k => Math.abs(localPercent[k] - fieldThresholds[k] * 100) > 0.001
+  ) || Object.keys(localAbsolute).some(
+    k => Math.abs(localAbsolute[k] - absoluteThresholds[k]) > 0.01
   );
 
   const handleApply = () => {
-    const converted = Object.fromEntries(
-      Object.entries(local).map(([k, v]) => [k, v / 100])
+    const convertedPercent = Object.fromEntries(
+      Object.entries(localPercent).map(([k, v]) => [k, v / 100])
     );
-    setFieldThresholds(converted);
+    setFieldThresholds(convertedPercent);
+    setAbsoluteThresholds(localAbsolute);
     toast.success('Thresholds updated — discrepancies recalculated');
   };
 
   const handleReset = () => {
-    const resetLocal = Object.fromEntries(Object.keys(local).map(k => [k, 0.5]));
-    setLocal(resetLocal);
+    setLocalPercent(Object.fromEntries(Object.keys(localPercent).map(k => [k, 0.5])));
+    setLocalAbsolute(Object.fromEntries(Object.keys(localAbsolute).map(k => [k, 0])));
   };
 
   const fields = Object.keys(fieldThresholds).sort();
 
   return (
-    <div className="h-full overflow-auto bg-gray-50">
-      <div className="max-w-3xl mx-auto p-8 space-y-6">
+    <div className="h-full overflow-auto bg-muted/30">
+      <div className="max-w-4xl mx-auto p-8 space-y-6">
         <div>
-          <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <SlidersHorizontal className="h-5 w-5 text-blue-500" />
+          <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
+            <SlidersHorizontal className="h-5 w-5 text-primary" />
             Parameter Thresholds
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Set the variance threshold for each financial parameter. Items exceeding their threshold will be flagged in the Discrepancy Dashboard.
+          <p className="text-sm text-muted-foreground mt-1">
+            Set variance thresholds for each parameter. A discrepancy is flagged if <strong>either</strong> the percentage or absolute threshold is breached.
           </p>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+        <div className="bg-background border border-border rounded-lg shadow-sm overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Parameter</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-40">Threshold (%)</th>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Parameter</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-40">% Threshold</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-44">Absolute Threshold ($)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border">
               {fields.map(field => (
-                <tr key={field} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-sm text-gray-900">{field}</td>
+                <tr key={field} className="hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 text-sm text-foreground">{field}</td>
                   <td className="px-4 py-3">
                     <Input
                       type="number"
-                      value={local[field]?.toFixed(2) ?? '0.50'}
-                      onChange={e => handleChange(field, e.target.value)}
+                      value={localPercent[field]?.toFixed(2) ?? '0.50'}
+                      onChange={e => handlePercentChange(field, e.target.value)}
                       min={0}
                       max={100}
                       step={0.01}
                       className="text-sm text-right w-28 ml-auto"
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Input
+                      type="number"
+                      value={localAbsolute[field] ?? 0}
+                      onChange={e => handleAbsoluteChange(field, e.target.value)}
+                      min={0}
+                      step={1000}
+                      placeholder="0 (disabled)"
+                      className="text-sm text-right w-32 ml-auto font-mono"
                     />
                   </td>
                 </tr>
@@ -81,26 +107,27 @@ export default function ParameterThresholdPage() {
         <div className="flex items-center justify-between">
           <button
             onClick={handleReset}
-            className="px-4 py-2 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 text-xs font-medium rounded-lg border border-border text-muted-foreground hover:bg-muted/50 transition-colors"
           >
-            Reset to 0.50%
+            Reset Defaults
           </button>
           <button
             onClick={handleApply}
             disabled={!isDirty}
-            className="px-4 py-2 text-xs font-medium rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             Apply Thresholds
           </button>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">How it works</h3>
-          <ul className="text-xs text-gray-500 space-y-1.5 list-disc pl-4">
-            <li>Each parameter has its own threshold percentage</li>
-            <li>Variance is calculated as <code className="bg-gray-100 px-1 rounded">(Extracted − Source) / Source</code></li>
-            <li>If the absolute variance exceeds the field's threshold, the item is flagged</li>
-            <li>Clicking "Apply Thresholds" immediately recalculates all discrepancies</li>
+        <div className="bg-background border border-border rounded-lg p-5 shadow-sm">
+          <h3 className="text-sm font-medium text-foreground mb-2">How it works</h3>
+          <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4">
+            <li>Each parameter has both a <strong>percentage</strong> and an <strong>absolute value</strong> threshold</li>
+            <li>Percentage variance: <code className="bg-muted px-1 rounded">(Extracted − Source) / Source</code></li>
+            <li>Absolute variance: <code className="bg-muted px-1 rounded">|Extracted − Source|</code></li>
+            <li>An item is flagged if <strong>either</strong> threshold is breached</li>
+            <li>Set absolute threshold to <strong>0</strong> to disable it (percentage-only mode)</li>
           </ul>
         </div>
       </div>
