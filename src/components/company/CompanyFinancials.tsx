@@ -182,6 +182,14 @@ export function CompanyFinancials({ companyId, selectedEntityId }: { companyId: 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* File page viewer */}
+      <FilePageViewer
+        sourceRef={viewerTarget?.sourceRef || null}
+        fieldName={viewerTarget?.fieldName || ''}
+        open={!!viewerTarget}
+        onClose={() => setViewerTarget(null)}
+      />
     </div>
   );
 }
