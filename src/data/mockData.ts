@@ -252,11 +252,13 @@ export const auditLogs: AuditLogEntry[] = [
   { id: 'al8', companyId: 'acme-asia', action: 'Status Changed', timestamp: '2025-03-14T09:00:00Z', user: 'audit@vantagecap.com', details: 'Status changed to Resolved' },
 ];
 
-export const calculateVariance = (source: number, extracted: number, threshold = 0.005) => {
+export const calculateVariance = (source: number, extracted: number, threshold = 0.005, absoluteThreshold?: number) => {
   if (source === 0) return { diff: extracted, percent: 0, isFlagged: false };
   const diff = extracted - source;
   const percent = diff / source;
-  const isFlagged = Math.abs(percent) > threshold;
+  const percentFlagged = Math.abs(percent) > threshold;
+  const absoluteFlagged = absoluteThreshold != null && absoluteThreshold > 0 ? Math.abs(diff) > absoluteThreshold : false;
+  const isFlagged = percentFlagged || absoluteFlagged;
   return { diff, percent, isFlagged };
 };
 

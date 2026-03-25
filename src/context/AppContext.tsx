@@ -7,15 +7,21 @@ for (const fields of Object.values(initialReconciliationData)) {
   for (const f of fields) allFieldNames.add(f.Field_Name);
 }
 const DEFAULT_THRESHOLD = 0.005;
+const DEFAULT_ABSOLUTE_THRESHOLD = 0; // 0 means disabled
 const defaultFieldThresholds: Record<string, number> = {};
-allFieldNames.forEach(name => { defaultFieldThresholds[name] = DEFAULT_THRESHOLD; });
+const defaultAbsoluteThresholds: Record<string, number> = {};
+allFieldNames.forEach(name => {
+  defaultFieldThresholds[name] = DEFAULT_THRESHOLD;
+  defaultAbsoluteThresholds[name] = DEFAULT_ABSOLUTE_THRESHOLD;
+});
 
-function buildDiscrepancies(thresholds: Record<string, number>, reconData: Record<string, ReconciliationField[]>): DiscrepancyItem[] {
+function buildDiscrepancies(thresholds: Record<string, number>, absoluteThresholds: Record<string, number>, reconData: Record<string, ReconciliationField[]>): DiscrepancyItem[] {
   const items: DiscrepancyItem[] = [];
   for (const [companyId, fields] of Object.entries(reconData)) {
     for (const field of fields) {
       const t = thresholds[field.Field_Name] ?? DEFAULT_THRESHOLD;
-      const v = calculateVariance(field.Source_Value, field.Extracted_Value, t);
+      const at = absoluteThresholds[field.Field_Name] ?? DEFAULT_ABSOLUTE_THRESHOLD;
+      const v = calculateVariance(field.Source_Value, field.Extracted_Value, t, at);
       if (v.isFlagged) {
         items.push({
           id: `disc-${companyId}-${field.entityId || companyId}-${field.Field_Name}`,
