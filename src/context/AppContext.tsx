@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, type ReactNode } from 'react';
-import { Company, AuditPeriod, companies as initialCompanies, EmailThread, emailThreads as initialEmails, DiscrepancyItem, reconciliationData as initialReconciliationData, calculateVariance, ReviewCycle, ReviewCompanyEntry, ReviewCycleLog, ReviewStage, reviewCycles as initialReviewCycles, reviewCompanyEntries as initialReviewCompanyEntries, reviewCycleLogs as initialReviewCycleLogs, ReconciliationField } from '@/data/mockData';
+import { Company, AuditPeriod, companies as initialCompanies, EmailThread, emailThreads as initialEmails, DiscrepancyItem, DiscrepancyStatus, reconciliationData as initialReconciliationData, calculateVariance, ReviewCycle, ReviewCompanyEntry, ReviewCycleLog, ReviewStage, reviewCycles as initialReviewCycles, reviewCompanyEntries as initialReviewCompanyEntries, reviewCycleLogs as initialReviewCycleLogs, ReconciliationField } from '@/data/mockData';
 
 // Extract all unique field names to build default thresholds
 const allFieldNames = new Set<string>();
@@ -61,6 +61,7 @@ interface AppState {
   setActiveAuditPeriod: (companyId: string, periodId: string) => void;
   bulkCreateReviewCycles: (rows: { companyId: string; periodLabel: string }[]) => void;
   updateDiscrepancy: (id: string, updates: Partial<DiscrepancyItem>) => void;
+  addManualDiscrepancy: (companyId: string, entityId: string, entityName: string, discrepancyType: string, discrepancyText: string) => void;
   addCompany: (name: string, contactName: string, contactEmail: string) => void;
   // Review Cycle Adjustments
   rcCycles: ReviewCycle[];
