@@ -19,7 +19,7 @@ export function FilePageViewer({ sourceRef, fieldName, open, onClose }: FilePage
     if (open && targetRef.current) {
       // Small delay to let dialog render
       setTimeout(() => {
-        targetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetRef.current?.scrollIntoView({ behavior: 'auto', block: 'center' });
       }, 150);
     }
   }, [open, sourceRef]);
