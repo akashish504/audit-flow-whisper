@@ -1,18 +1,25 @@
 import { useState } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { calculateVariance, formatCurrency } from '@/data/mockData';
+import type { SourceReference } from '@/data/mockData';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Pencil } from 'lucide-react';
+import { Pencil, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import { FilePageViewer } from './FilePageViewer';
 
 interface EditTarget {
   entityId: string;
   fieldName: string;
   column: 'Source_Value' | 'Extracted_Value';
   currentValue: number;
+}
+
+interface ViewerTarget {
+  sourceRef: SourceReference;
+  fieldName: string;
 }
 
 export function CompanyFinancials({ companyId, selectedEntityId }: { companyId: string; selectedEntityId?: string }) {
