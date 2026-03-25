@@ -16,15 +16,13 @@ export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
   const companyDiscrepancies = discrepancies.filter(d => relatedIds.includes(d.entityId));
 
   const [editingItem, setEditingItem] = useState<DiscrepancyItem | null>(null);
-  const [editForm, setEditForm] = useState({ enabled: true, remarks: '', l1Reviewer: '', l2Reviewer: '' });
+  const [editForm, setEditForm] = useState({ enabled: true, remarks: '' });
   const [pendingToggle, setPendingToggle] = useState<{ id: string; newValue: boolean } | null>(null);
 
   const openEdit = (item: DiscrepancyItem) => {
     setEditForm({
       enabled: item.enabled,
       remarks: item.remarks,
-      l1Reviewer: item.l1Reviewer,
-      l2Reviewer: item.l2Reviewer,
     });
     setEditingItem(item);
   };
@@ -147,25 +145,6 @@ export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">L1 Reviewer</label>
-                <input
-                  value={editForm.l1Reviewer}
-                  onChange={e => setEditForm(prev => ({ ...prev, l1Reviewer: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  placeholder="Enter L1 Reviewer name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">L2 Reviewer</label>
-                <input
-                  value={editForm.l2Reviewer}
-                  onChange={e => setEditForm(prev => ({ ...prev, l2Reviewer: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  placeholder="Enter L2 Reviewer name"
-                />
-              </div>
             </div>
           )}
           <DialogFooter className="mt-4">
