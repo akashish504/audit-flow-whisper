@@ -128,11 +128,12 @@ export default function PortfolioCompaniesPage() {
   const [statusFilter, setStatusFilter] = useState<AuditStatus | ''>('');
   const [pendingStatus, setPendingStatus] = useState<{ id: string; name: string; from: AuditStatus; to: AuditStatus } | null>(null);
   const [fileListOpen, setFileListOpen] = useState<string | null>(null);
-  const [selectedCycleId, setSelectedCycleId] = useState(rcCycles.length > 0 ? rcCycles[0].id : '');
+  const [selectedCycleId, setSelectedCycleId] = useState('__all__');
 
-  const selectedCycleLabel = rcCycles.find(c => c.id === selectedCycleId)?.label || '';
+  
 
   const companyNamesInCycle = useMemo(() => {
+    if (selectedCycleId === '__all__') return null;
     if (!selectedCycleId) return new Set<string>();
     return new Set(rcEntries.filter(e => e.reviewCycleId === selectedCycleId).map(e => e.companyName.toLowerCase()));
   }, [selectedCycleId, rcEntries]);
@@ -140,14 +141,15 @@ export default function PortfolioCompaniesPage() {
   const entities = companies.filter(c => c.parentId !== null);
 
   const cycleFilteredEntities = useMemo(() => {
-    if (!selectedCycleId) return entities;
+    if (companyNamesInCycle === null) return entities; // "All" selected
+    if (companyNamesInCycle.size === 0) return entities;
     return entities.filter(entity => {
       if (companyNamesInCycle.has(entity.name.toLowerCase())) return true;
       const parent = companies.find(c => c.id === entity.parentId);
       if (parent && companyNamesInCycle.has(parent.name.toLowerCase())) return true;
       return false;
     });
-  }, [entities, selectedCycleId, companyNamesInCycle, companies]);
+  }, [entities, companyNamesInCycle, companies]);
 
   const filtered = useMemo(() => {
     return cycleFilteredEntities.filter(c => {
@@ -184,6 +186,7 @@ export default function PortfolioCompaniesPage() {
             onChange={e => setSelectedCycleId(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
+            <option value="__all__">All Cycles</option>
             {rcCycles.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
         </div>
@@ -260,7 +263,7 @@ export default function PortfolioCompaniesPage() {
                     <td className="px-4 py-3">
                       <StatusDropdown company={company} onStatusChange={handleStatusChange} />
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{selectedCycleLabel}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{company.auditPeriod}</td>
                     <td className="px-4 py-3 text-sm text-gray-500">{company.contactName || '—'}</td>
                     <td className="px-4 py-3">
                       <div className="relative" onClick={e => e.stopPropagation()}>
