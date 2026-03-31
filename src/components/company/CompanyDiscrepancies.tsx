@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAppState } from '@/context/AppContext';
-import { calculateVariance, formatCurrency } from '@/data/mockData';
+
 import type { DiscrepancyItem, DiscrepancyStatus } from '@/data/mockData';
 import { AlertTriangle, Pencil, Plus, Download } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
