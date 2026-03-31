@@ -1,6 +1,5 @@
 import { Building2, Mail, FileText, Tag, Settings } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
-import { useLocation } from 'react-router-dom';
 import peakLogo from '@/assets/peak-logo.svg';
 import {
   Sidebar,

@@ -21,7 +21,7 @@ type CompanyFilter = 'all' | 'overdue' | 'in-review' | 'completed';
 
 const ReviewCycleAdjustmentsPage: React.FC = () => {
   const { rcCycles, rcEntries, rcLogs, addReviewCycle, addOrUpdateRCEntries, updateRCEntryStage } = useAppState();
-  const [activeTab, setActiveTab] = useState<'companies' | 'cycles' | 'logs'>('companies');
+  const [activeTab, setActiveTab] = useState<'companies'>('companies');
 
   // Cycle Adjustments state
   const [newCY, setNewCY] = useState('');
