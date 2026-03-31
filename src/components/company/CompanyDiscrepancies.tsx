@@ -2,24 +2,25 @@ import { useState } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { calculateVariance, formatCurrency } from '@/data/mockData';
 import type { DiscrepancyItem, DiscrepancyStatus } from '@/data/mockData';
-import { AlertTriangle, Pencil, Building2, Plus } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
+import { AlertTriangle, Pencil, Plus, Download } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
 const STATUS_OPTIONS: DiscrepancyStatus[] = ['Open', 'Under Review', 'Resolved', 'Dismissed'];
 
-const statusColor: Record<DiscrepancyStatus, string> = {
+const statusBadge: Record<DiscrepancyStatus, string> = {
   'Open': 'bg-red-100 text-red-800',
   'Under Review': 'bg-yellow-100 text-yellow-800',
   'Resolved': 'bg-green-100 text-green-800',
-  'Dismissed': 'bg-muted text-muted-foreground',
+  'Dismissed': 'bg-gray-100 text-gray-500',
 };
+
+const enabledBadge = (enabled: boolean) =>
+  enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500';
 
 export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
   const { companies, discrepancies, updateDiscrepancy, addManualDiscrepancy } = useAppState();
@@ -76,113 +77,163 @@ export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
     setShowAddDialog(false);
   };
 
+  const handleDownloadExcel = () => {
+    const header = ['Query', 'Type', 'Entity', 'Enabled', 'Status', 'Source', 'Extracted'];
+    const rows = companyDiscrepancies.map(item => {
+      const isManual = item.discrepancyCategory === 'manual';
+      return [
+        item.discrepancyText || item.fieldName,
+        item.discrepancyType,
+        item.entityName,
+        item.enabled ? 'Yes' : 'No',
+        item.discrepancyStatus,
+        isManual ? '' : String(item.sourceValue),
+        isManual ? '' : String(item.extractedValue),
+      ].join(',');
+    });
+    const csv = [header.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `discrepancies-${companyId}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs text-gray-500">
           {companyDiscrepancies.length} discrepanc{companyDiscrepancies.length === 1 ? 'y' : 'ies'} found
         </p>
-        <button
-          onClick={() => setShowAddDialog(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
-        >
-          <Plus className="h-3.5 w-3.5" /> Add Manual
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDownloadExcel}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-all"
+          >
+            <Download className="h-4 w-4" /> Download Excel
+          </button>
+          <button
+            onClick={() => setShowAddDialog(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-all"
+          >
+            <Plus className="h-4 w-4" /> Add Investor Query
+          </button>
+        </div>
       </div>
 
       {companyDiscrepancies.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 gap-2">
-          <AlertTriangle className="h-8 w-8 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground">No discrepancies found</p>
+        <div className="flex flex-col items-center justify-center py-16 gap-2 bg-white rounded-lg border border-gray-200">
+          <AlertTriangle className="h-8 w-8 text-gray-300" />
+          <p className="text-sm text-gray-400">No discrepancies found</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {companyDiscrepancies.map(item => {
-            const isManual = item.discrepancyCategory === 'manual';
-            const v = isManual ? null : calculateVariance(item.sourceValue, item.extractedValue);
-            return (
-              <div key={item.id} className={`bg-card border rounded-lg p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-all ${item.enabled ? 'border-destructive/30' : 'border-border opacity-60'}`}>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <AlertTriangle className={`h-4 w-4 shrink-0 ${item.enabled ? 'text-destructive' : 'text-muted-foreground'}`} />
-                    <span className="text-sm font-semibold text-foreground">{item.fieldName}</span>
-                    {v && (
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${item.enabled ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
-                        {(v.percent * 100).toFixed(2)}%
-                      </span>
-                    )}
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                      <Building2 className="h-3 w-3" />
-                      {item.entityName}
-                    </span>
-                    <Badge variant="outline" className={statusColor[item.discrepancyStatus]}>
-                      {item.discrepancyStatus}
-                    </Badge>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {item.discrepancyCategory}
-                    </Badge>
-                  </div>
-                  {item.discrepancyText && (
-                    <p className="text-xs text-muted-foreground mb-1 truncate">{item.discrepancyText}</p>
-                  )}
-                  {!isManual && (
-                    <div className="text-xs text-muted-foreground space-x-4">
-                      <span>Source: {formatCurrency(item.sourceValue)}</span>
-                      <span>Extracted: {formatCurrency(item.extractedValue)}</span>
-                      {v && <span>Diff: {formatCurrency(v.diff)}</span>}
-                    </div>
-                  )}
-                </div>
+        <div className="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-[35%]">Query</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Entity</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">To Be Sent?</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Edit</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {companyDiscrepancies.map(item => (
+                <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                  {/* Query */}
+                  <td className="px-4 py-4 text-sm text-gray-900 leading-relaxed">
+                    {item.discrepancyText || `Variance detected in ${item.fieldName}`}
+                  </td>
 
-                <div className="flex items-center gap-3 shrink-0 ml-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-muted-foreground uppercase">{item.enabled ? 'Enabled' : 'Disabled'}</span>
-                    <Switch
-                      checked={item.enabled}
-                      onCheckedChange={(checked) => setPendingToggle({ id: item.id, newValue: checked })}
-                    />
-                  </div>
-                  <button
-                    onClick={() => openEdit(item)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-card text-foreground hover:bg-muted transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
-                  >
-                    <Pencil className="h-3 w-3" /> Edit
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                  {/* Type */}
+                  <td className="px-4 py-4 text-sm text-gray-500">
+                    {item.discrepancyType}
+                  </td>
+
+                  {/* Entity */}
+                  <td className="px-4 py-4 text-sm text-gray-500">
+                    {item.entityName}
+                  </td>
+
+                  {/* To Be Sent (Enable/Disable) */}
+                  <td className="px-4 py-4">
+                    <select
+                      value={item.enabled ? 'Yes' : 'No'}
+                      onChange={e => {
+                        const newValue = e.target.value === 'Yes';
+                        if (newValue !== item.enabled) {
+                          setPendingToggle({ id: item.id, newValue });
+                        }
+                      }}
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer border-none focus:outline-none focus:ring-2 focus:ring-blue-500 ${enabledBadge(item.enabled)}`}
+                    >
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </td>
+
+                  {/* Status */}
+                  <td className="px-4 py-4">
+                    <select
+                      value={item.discrepancyStatus}
+                      onChange={e => {
+                        const newStatus = e.target.value as DiscrepancyStatus;
+                        updateDiscrepancy(item.id, { discrepancyStatus: newStatus });
+                        toast.success(`Status updated to "${newStatus}"`);
+                      }}
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer border-none focus:outline-none focus:ring-2 focus:ring-blue-500 ${statusBadge[item.discrepancyStatus]}`}
+                    >
+                      {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
+                    </select>
+                  </td>
+
+                  {/* Edit */}
+                  <td className="px-4 py-4 text-center">
+                    <button
+                      onClick={() => openEdit(item)}
+                      className="text-gray-400 hover:text-blue-600 transition-colors"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
       {/* Toggle confirmation */}
       <AlertDialog open={!!pendingToggle} onOpenChange={(open) => { if (!open) setPendingToggle(null); }}>
-        <AlertDialogContent className="bg-card">
+        <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Confirm Change</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
+            <AlertDialogTitle className="text-gray-900">Confirm Change</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-500">
               Are you sure you want to {pendingToggle?.newValue ? 'enable' : 'disable'} this discrepancy?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-border text-foreground hover:bg-muted">No</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmToggle} className="bg-primary text-primary-foreground hover:bg-primary/90">Yes</AlertDialogAction>
+            <AlertDialogCancel className="border-gray-300 text-gray-700 hover:bg-gray-50">No</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmToggle} className="bg-blue-500 text-white hover:bg-blue-600">Yes</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Edit Dialog */}
       <Dialog open={!!editingItem} onOpenChange={(open) => { if (!open) setEditingItem(null); }}>
-        <DialogContent className="bg-card rounded-lg p-6 w-full max-w-md">
+        <DialogContent className="bg-white rounded-lg p-6 w-full max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-foreground">Edit Discrepancy</DialogTitle>
+            <DialogTitle className="text-lg font-bold text-gray-900">Edit Discrepancy</DialogTitle>
           </DialogHeader>
           {editingItem && (
             <div className="space-y-4 mt-2">
-              <div className="text-sm text-foreground font-medium">{editingItem.fieldName} — {editingItem.entityName}</div>
+              <div className="text-sm text-gray-900 font-medium">{editingItem.fieldName} — {editingItem.entityName}</div>
 
               <div>
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Type</Label>
+                <Label className="text-xs uppercase tracking-wider text-gray-500">Type</Label>
                 <Input
                   value={editForm.discrepancyType}
                   onChange={e => setEditForm(prev => ({ ...prev, discrepancyType: e.target.value }))}
@@ -192,18 +243,18 @@ export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
               </div>
 
               <div>
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Discrepancy Text</Label>
+                <Label className="text-xs uppercase tracking-wider text-gray-500">Query Text</Label>
                 <textarea
                   value={editForm.discrepancyText}
                   onChange={e => setEditForm(prev => ({ ...prev, discrepancyText: e.target.value }))}
-                  rows={2}
-                  className="mt-1 w-full px-3 py-2 border border-input rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  rows={3}
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Describe the discrepancy..."
                 />
               </div>
 
               <div>
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Status</Label>
+                <Label className="text-xs uppercase tracking-wider text-gray-500">Status</Label>
                 <Select value={editForm.discrepancyStatus} onValueChange={(v) => setEditForm(prev => ({ ...prev, discrepancyStatus: v as DiscrepancyStatus }))}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
@@ -214,42 +265,34 @@ export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
                 </Select>
               </div>
 
-              <div className="flex items-center justify-between">
-                <Label className="text-sm text-foreground">Enable for clarification</Label>
-                <Switch
-                  checked={editForm.enabled}
-                  onCheckedChange={(checked) => setEditForm(prev => ({ ...prev, enabled: checked }))}
-                />
-              </div>
-
               <div>
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Remarks</Label>
+                <Label className="text-xs uppercase tracking-wider text-gray-500">Remarks</Label>
                 <textarea
                   value={editForm.remarks}
                   onChange={e => setEditForm(prev => ({ ...prev, remarks: e.target.value }))}
                   rows={2}
-                  className="mt-1 w-full px-3 py-2 border border-input rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Add remarks..."
                 />
               </div>
             </div>
           )}
           <DialogFooter className="mt-4">
-            <button onClick={() => setEditingItem(null)} className="px-4 py-2 rounded-lg font-medium text-sm border border-border bg-card text-foreground hover:bg-muted transition-all">Cancel</button>
-            <button onClick={saveEdit} className="px-4 py-2 rounded-lg font-medium text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-all">Save</button>
+            <button onClick={() => setEditingItem(null)} className="px-4 py-2 rounded-lg font-medium text-sm border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-all">Cancel</button>
+            <button onClick={saveEdit} className="px-4 py-2 rounded-lg font-medium text-sm bg-blue-500 text-white hover:bg-blue-600 transition-all">Save</button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Add Manual Discrepancy Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="bg-card rounded-lg p-6 w-full max-w-md">
+        <DialogContent className="bg-white rounded-lg p-6 w-full max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-foreground">Add Manual Discrepancy</DialogTitle>
+            <DialogTitle className="text-lg font-bold text-gray-900">Add Investor Query</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Discrepancy Type <span className="text-destructive">*</span></Label>
+              <Label className="text-xs uppercase tracking-wider text-gray-500">Type <span className="text-red-500">*</span></Label>
               <Input
                 value={addForm.discrepancyType}
                 onChange={e => setAddForm(prev => ({ ...prev, discrepancyType: e.target.value }))}
@@ -258,19 +301,19 @@ export function CompanyDiscrepancies({ companyId }: { companyId: string }) {
               />
             </div>
             <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Discrepancy Text <span className="text-destructive">*</span></Label>
+              <Label className="text-xs uppercase tracking-wider text-gray-500">Query Text <span className="text-red-500">*</span></Label>
               <textarea
                 value={addForm.discrepancyText}
                 onChange={e => setAddForm(prev => ({ ...prev, discrepancyText: e.target.value }))}
                 rows={3}
-                className="mt-1 w-full px-3 py-2 border border-input rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Describe the discrepancy..."
               />
             </div>
           </div>
           <DialogFooter className="mt-4">
-            <button onClick={() => setShowAddDialog(false)} className="px-4 py-2 rounded-lg font-medium text-sm border border-border bg-card text-foreground hover:bg-muted transition-all">Cancel</button>
-            <button onClick={handleAddManual} className="px-4 py-2 rounded-lg font-medium text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-all">Add Discrepancy</button>
+            <button onClick={() => setShowAddDialog(false)} className="px-4 py-2 rounded-lg font-medium text-sm border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-all">Cancel</button>
+            <button onClick={handleAddManual} className="px-4 py-2 rounded-lg font-medium text-sm bg-blue-500 text-white hover:bg-blue-600 transition-all">Add Query</button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
