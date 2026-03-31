@@ -41,14 +41,7 @@ export default function CompanyDetailPage() {
     return () => document.removeEventListener('mousedown', handler);
   }, [statusOpen]);
 
-  useEffect(() => {
-    if (!currencyDropdownOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (currencyRef.current && !currencyRef.current.contains(e.target as Node)) setCurrencyDropdownOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [currencyDropdownOpen]);
+
 
   const company = companies.find(c => c.id === companyId);
   if (!company) {
