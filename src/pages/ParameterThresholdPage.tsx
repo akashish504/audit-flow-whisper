@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { SlidersHorizontal } from 'lucide-react';
 import { formatCurrency } from '@/data/mockData';
 
 export default function ParameterThresholdPage() {
