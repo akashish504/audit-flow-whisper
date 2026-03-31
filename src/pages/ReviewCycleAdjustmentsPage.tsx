@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { ReviewStage } from '@/data/mockData';
-import { Plus, Upload, Download, Search, AlertTriangle } from 'lucide-react';
+import { Upload, Download, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 const STAGES: ReviewStage[] = ['Scoped In', 'Scoped Out', 'Overdue', 'In Review', 'Completed'];
