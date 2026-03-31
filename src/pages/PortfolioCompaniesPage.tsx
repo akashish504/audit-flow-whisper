@@ -128,7 +128,7 @@ export default function PortfolioCompaniesPage() {
   const [statusFilter, setStatusFilter] = useState<AuditStatus | ''>('');
   const [pendingStatus, setPendingStatus] = useState<{ id: string; name: string; from: AuditStatus; to: AuditStatus } | null>(null);
   const [fileListOpen, setFileListOpen] = useState<string | null>(null);
-  const [selectedCycleId, setSelectedCycleId] = useState(rcCycles.length > 0 ? rcCycles[0].id : '');
+  const [selectedCycleId, setSelectedCycleId] = useState('__all__');
 
   const selectedCycleLabel = rcCycles.find(c => c.id === selectedCycleId)?.label || '';
 
