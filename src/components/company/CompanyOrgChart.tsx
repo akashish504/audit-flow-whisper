@@ -4,6 +4,7 @@ import { Company, taggedFiles, AuditStatus } from '@/data/mockData';
 import { Building2, CheckCircle2, Paperclip, Search, FileText, X, ChevronDown, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { OrgChartUpload } from './OrgChartUpload';
 
 const statusBadge: Record<string, string> = {
   'Pending Review': 'bg-yellow-100 text-yellow-800',
@@ -252,6 +253,7 @@ function TreeNode({ company, companies, highlightedEntityId, portfolioCompany }:
 export function CompanyOrgChart({ companyId, selectedEntityId }: { companyId: string; selectedEntityId?: string }) {
   const { companies } = useAppState();
   const portfolioCompany = companies.find(c => c.id === companyId);
+  const [orgChartFile, setOrgChartFile] = useState<{ name: string; url: string; type: string } | null>(null);
   if (!portfolioCompany) return null;
 
   let root = portfolioCompany;
@@ -261,15 +263,29 @@ export function CompanyOrgChart({ companyId, selectedEntityId }: { companyId: st
     root = parent;
   }
 
+  const handleOrgChartUploaded = (_file: File, url: string) => {
+    setOrgChartFile({ name: _file.name, url, type: _file.type });
+  };
+
   return (
-    <div className="p-6 overflow-auto h-full">
-      <div className="inline-flex justify-center min-w-full">
-        <TreeNode
-          company={root}
-          companies={companies}
-          highlightedEntityId={selectedEntityId}
-          portfolioCompany={portfolioCompany}
-        />
+    <div className="p-6 overflow-auto h-full space-y-6">
+      <OrgChartUpload
+        companyId={companyId}
+        onFileUploaded={handleOrgChartUploaded}
+        uploadedFile={orgChartFile}
+        onClear={() => setOrgChartFile(null)}
+      />
+
+      <div>
+        <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">Entity Structure</h3>
+        <div className="inline-flex justify-center min-w-full">
+          <TreeNode
+            company={root}
+            companies={companies}
+            highlightedEntityId={selectedEntityId}
+            portfolioCompany={portfolioCompany}
+          />
+        </div>
       </div>
     </div>
   );
