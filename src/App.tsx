@@ -13,6 +13,7 @@ import FileDetailPage from "@/pages/FileDetailPage";
 import EmailTaggingPage from "@/pages/EmailTaggingPage";
 import ParameterThresholdPage from "@/pages/ParameterThresholdPage";
 import ReviewCycleAdjustmentsPage from "@/pages/ReviewCycleAdjustmentsPage";
+import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient({
