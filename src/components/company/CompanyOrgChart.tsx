@@ -254,6 +254,7 @@ export function CompanyOrgChart({ companyId, selectedEntityId }: { companyId: st
   const { companies } = useAppState();
   const portfolioCompany = companies.find(c => c.id === companyId);
   const [orgChartFile, setOrgChartFile] = useState<{ name: string; url: string; type: string } | null>(null);
+  const [uploadExpanded, setUploadExpanded] = useState(true);
   if (!portfolioCompany) return null;
 
   let root = portfolioCompany;
@@ -265,16 +266,27 @@ export function CompanyOrgChart({ companyId, selectedEntityId }: { companyId: st
 
   const handleOrgChartUploaded = (_file: File, url: string) => {
     setOrgChartFile({ name: _file.name, url, type: _file.type });
+    setUploadExpanded(false);
   };
 
   return (
     <div className="p-6 overflow-auto h-full space-y-6">
-      <OrgChartUpload
-        companyId={companyId}
-        onFileUploaded={handleOrgChartUploaded}
-        uploadedFile={orgChartFile}
-        onClear={() => setOrgChartFile(null)}
-      />
+      {orgChartFile && !uploadExpanded ? (
+        <button
+          onClick={() => setUploadExpanded(true)}
+          className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 transition-colors"
+        >
+          <span className="truncate max-w-[200px]">📄 {orgChartFile.name}</span>
+          <span className="text-primary">View / Re-upload</span>
+        </button>
+      ) : (
+        <OrgChartUpload
+          companyId={companyId}
+          onFileUploaded={handleOrgChartUploaded}
+          uploadedFile={orgChartFile}
+          onClear={() => { setOrgChartFile(null); setUploadExpanded(true); }}
+        />
+      )}
 
       <div>
         <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">Entity Structure</h3>
