@@ -263,7 +263,7 @@ export default function PortfolioCompaniesPage() {
                     <td className="px-4 py-3">
                       <StatusDropdown company={company} onStatusChange={handleStatusChange} />
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{selectedCycleLabel}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{company.auditPeriod}</td>
                     <td className="px-4 py-3 text-sm text-gray-500">{company.contactName || '—'}</td>
                     <td className="px-4 py-3">
                       <div className="relative" onClick={e => e.stopPropagation()}>
