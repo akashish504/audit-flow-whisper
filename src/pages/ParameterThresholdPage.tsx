@@ -51,13 +51,9 @@ export default function ParameterThresholdPage() {
   const fields = Object.keys(fieldThresholds).sort();
 
   return (
-    <div className="h-full overflow-auto bg-muted/30">
-      <div className="max-w-4xl mx-auto p-8 space-y-6">
-        <div>
-          <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <SlidersHorizontal className="h-5 w-5 text-primary" />
-            Parameter Thresholds
-          </h1>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div>
+        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">Parameter Thresholds</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Set variance thresholds for each parameter. A discrepancy is flagged if <strong>either</strong> the percentage or absolute threshold is breached.
           </p>
