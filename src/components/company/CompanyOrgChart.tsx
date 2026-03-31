@@ -266,6 +266,7 @@ export function CompanyOrgChart({ companyId, selectedEntityId }: { companyId: st
 
   const handleOrgChartUploaded = (_file: File, url: string) => {
     setOrgChartFile({ name: _file.name, url, type: _file.type });
+    setUploadExpanded(false);
   };
 
   return (
