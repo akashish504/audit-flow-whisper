@@ -130,9 +130,10 @@ export default function PortfolioCompaniesPage() {
   const [fileListOpen, setFileListOpen] = useState<string | null>(null);
   const [selectedCycleId, setSelectedCycleId] = useState('__all__');
 
-  const selectedCycleLabel = rcCycles.find(c => c.id === selectedCycleId)?.label || '';
+  const selectedCycleLabel = selectedCycleId === '__all__' ? 'All Cycles' : (rcCycles.find(c => c.id === selectedCycleId)?.label || '');
 
   const companyNamesInCycle = useMemo(() => {
+    if (selectedCycleId === '__all__') return null;
     if (!selectedCycleId) return new Set<string>();
     return new Set(rcEntries.filter(e => e.reviewCycleId === selectedCycleId).map(e => e.companyName.toLowerCase()));
   }, [selectedCycleId, rcEntries]);
