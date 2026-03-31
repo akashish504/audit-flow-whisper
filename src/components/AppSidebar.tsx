@@ -33,11 +33,11 @@ export function AppSidebar() {
         <div className={`px-4 py-5 border-b border-gray-200 ${collapsed ? 'px-2' : ''}`}>
           {!collapsed ? (
             <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-blue-500" />
-              <span className="text-sm font-semibold tracking-tight text-gray-900">Vantage Audit</span>
+              <img src={peakLogo} alt="Audit Review" className="h-5" />
+              <span className="text-sm font-semibold tracking-tight text-gray-900">Audit Review</span>
             </div>
           ) : (
-            <FileText className="h-5 w-5 text-blue-500 mx-auto" />
+            <img src={peakLogo} alt="Audit Review" className="h-5 mx-auto" />
           )}
         </div>
 
