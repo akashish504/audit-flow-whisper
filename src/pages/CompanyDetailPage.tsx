@@ -139,12 +139,54 @@ export default function CompanyDetailPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Currency Settings */}
+            <div className="relative" ref={currencyRef}>
+              <button
+                onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              >
+                <Settings className="h-3.5 w-3.5 text-gray-400" />
+                <span className="font-medium">{currencySymbol}</span>
+                <span>{currency}</span>
+                <ChevronDown className="h-3 w-3 text-gray-400" />
+              </button>
+              {currencyDropdownOpen && (
+                <div className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-4 min-w-[220px]">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-2">Currency Settings</p>
+                  <p className="text-sm text-gray-800 font-medium mb-0.5">{currencySymbol}&nbsp; Current: {currency}</p>
+                  <p className="text-xs text-gray-500 mb-3">Rate: {exchangeDisplay}</p>
+                  <button
+                    onClick={() => {
+                      setCurrency(currency === 'USD' ? 'INR' : 'USD');
+                      setCurrencyDropdownOpen(false);
+                      toast.success(`Currency switched to ${currency === 'USD' ? 'INR' : 'USD'}`);
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Edit Currency Settings
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Sync Data */}
+            <button
+              onClick={handleSyncData}
+              disabled={isSyncing}
+              className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
+            >
+              {isSyncing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {isSyncing ? 'Syncing...' : 'Sync Data'}
+            </button>
+
+            {/* Review Period */}
             <div className="flex flex-col items-end gap-1">
-              <label className="text-[10px] text-gray-400 uppercase tracking-wider">Review Period</label>
+              <label className="text-[10px] text-gray-400 uppercase tracking-wider">Cycle:</label>
               <select
                 value={company.auditPeriods.find(p => p.isActive)?.id || ''}
                 onChange={e => handlePeriodChange(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                disabled={isSyncing}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white disabled:opacity-50"
               >
                 {rcCycles.map(c => (
                   <option key={c.id} value={c.id}>{c.label}</option>
