@@ -254,6 +254,7 @@ export function CompanyOrgChart({ companyId, selectedEntityId }: { companyId: st
   const { companies } = useAppState();
   const portfolioCompany = companies.find(c => c.id === companyId);
   const [orgChartFile, setOrgChartFile] = useState<{ name: string; url: string; type: string } | null>(null);
+  const [uploadExpanded, setUploadExpanded] = useState(true);
   if (!portfolioCompany) return null;
 
   let root = portfolioCompany;
