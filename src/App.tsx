@@ -13,6 +13,7 @@ import FileDetailPage from "@/pages/FileDetailPage";
 import EmailTaggingPage from "@/pages/EmailTaggingPage";
 import ParameterThresholdPage from "@/pages/ParameterThresholdPage";
 import ReviewCycleAdjustmentsPage from "@/pages/ReviewCycleAdjustmentsPage";
+import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient({
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/file-tagging/:fileId" element={<FileDetailPage />} />
               <Route path="/email-tagging" element={<EmailTaggingPage />} />
               <Route path="/parameter-threshold" element={<ParameterThresholdPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>
