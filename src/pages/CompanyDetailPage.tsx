@@ -30,6 +30,23 @@ export default function CompanyDetailPage() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<AuditStatus | null>(null);
   const statusRef = useRef<HTMLDivElement>(null);
+  const [currency, setCurrency] = useState<'USD' | 'INR'>('USD');
+  const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const currencyRef = useRef<HTMLDivElement>(null);
+
+  const currencySymbol = currency === 'USD' ? '$' : '₹';
+  const exchangeRate = currency === 'USD' ? 93.0 : 1 / 93.0;
+  const exchangeDisplay = currency === 'USD' ? '$1 = ₹93.0000' : '₹1 = $0.0108';
+
+  const handleSyncData = () => {
+    setIsSyncing(true);
+    // Simulate a sync process (3-5 seconds)
+    setTimeout(() => {
+      setIsSyncing(false);
+      toast.success('Data synced successfully');
+    }, 4000);
+  };
 
   useEffect(() => {
     if (!statusOpen) return;
