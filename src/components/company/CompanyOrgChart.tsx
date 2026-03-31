@@ -288,17 +288,19 @@ export function CompanyOrgChart({ companyId, selectedEntityId }: { companyId: st
         />
       )}
 
-      <div>
-        <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">Entity Structure</h3>
-        <div className="inline-flex justify-center min-w-full">
-          <TreeNode
-            company={root}
-            companies={companies}
-            highlightedEntityId={selectedEntityId}
-            portfolioCompany={portfolioCompany}
-          />
+      {orgChartFile && (
+        <div>
+          <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">Entity Structure</h3>
+          <div className="inline-flex justify-center min-w-full">
+            <TreeNode
+              company={root}
+              companies={companies}
+              highlightedEntityId={selectedEntityId}
+              portfolioCompany={portfolioCompany}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
