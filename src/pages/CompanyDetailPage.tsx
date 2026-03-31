@@ -93,7 +93,16 @@ export default function CompanyDetailPage() {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden relative">
+      {/* Sync blocking overlay */}
+      {isSyncing && (
+        <div className="absolute inset-0 z-[100] bg-white/60 backdrop-blur-sm flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <p className="text-sm font-medium text-gray-700">Syncing data, please wait...</p>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 bg-white shrink-0">
         <button
