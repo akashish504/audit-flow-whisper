@@ -1,20 +1,26 @@
 import { useState, useRef } from 'react';
-import { Upload, FileText, Trash2 } from 'lucide-react';
+import { Upload, FileText, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
-interface UploadedAuditFile {
+export interface UploadedAuditFile {
   id: string;
   name: string;
   size: string;
   type: string;
   url: string;
   uploadedAt: string;
+  reviewPeriod: string;
+  entityName: string;
 }
 
 interface AuditFileUploadProps {
   companyId: string;
   files: UploadedAuditFile[];
   onFilesChange: (files: UploadedAuditFile[]) => void;
+  availableEntities: { id: string; name: string }[];
+  availablePeriods: string[];
 }
 
 function formatSize(bytes: number): string {
@@ -23,29 +29,48 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function AuditFileUpload({ companyId, files, onFilesChange }: AuditFileUploadProps) {
+export function AuditFileUpload({ companyId, files, onFilesChange, availableEntities, availablePeriods }: AuditFileUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState('');
+  const [selectedEntity, setSelectedEntity] = useState('');
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadClick = () => {
+    setSelectedPeriod(availablePeriods[0] || '');
+    setSelectedEntity(availableEntities[0]?.name || '');
+    setPendingFiles([]);
+    setDialogOpen(true);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files;
     if (!selected || selected.length === 0) return;
+    setPendingFiles(Array.from(selected));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
-    const newFiles: UploadedAuditFile[] = [];
-    for (let i = 0; i < selected.length; i++) {
-      const file = selected[i];
-      newFiles.push({
-        id: `audit-file-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        name: file.name,
-        size: formatSize(file.size),
-        type: file.type,
-        url: URL.createObjectURL(file),
-        uploadedAt: new Date().toISOString(),
-      });
+  const handleConfirmUpload = () => {
+    if (!selectedPeriod || !selectedEntity || pendingFiles.length === 0) {
+      toast.error('Please select review period, entity, and at least one file');
+      return;
     }
 
+    const newFiles: UploadedAuditFile[] = pendingFiles.map(file => ({
+      id: `audit-file-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: file.name,
+      size: formatSize(file.size),
+      type: file.type,
+      url: URL.createObjectURL(file),
+      uploadedAt: new Date().toISOString(),
+      reviewPeriod: selectedPeriod,
+      entityName: selectedEntity,
+    }));
+
     onFilesChange([...newFiles, ...files]);
-    toast.success(`${newFiles.length} file(s) uploaded`);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    toast.success(`${newFiles.length} file(s) uploaded for ${selectedEntity} — ${selectedPeriod}`);
+    setDialogOpen(false);
+    setPendingFiles([]);
   };
 
   const handleRemove = (id: string) => {
@@ -53,46 +78,39 @@ export function AuditFileUpload({ companyId, files, onFilesChange }: AuditFileUp
     toast.success('File removed');
   };
 
-  return (
-    <div className="border border-gray-200 rounded-lg bg-white p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wider">Audit Files</h3>
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
-        >
-          <Upload className="h-3 w-3" /> Upload Files
-        </button>
-      </div>
+  const removePendingFile = (idx: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== idx));
+  };
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        onChange={handleFileChange}
-        className="hidden"
-      />
+  return (
+    <div className="border border-border rounded-lg bg-background p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Audit Files</h3>
+        <Button size="sm" onClick={handleUploadClick} className="h-7 text-xs gap-1.5">
+          <Upload className="h-3 w-3" /> Upload Files
+        </Button>
+      </div>
 
       {files.length === 0 ? (
         <div
-          onClick={() => fileInputRef.current?.click()}
-          className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
+          onClick={handleUploadClick}
+          className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-colors"
         >
-          <Upload className="h-6 w-6 text-gray-300 mb-2" />
-          <p className="text-sm text-gray-500">Click to upload audit files</p>
+          <Upload className="h-6 w-6 text-muted-foreground/50 mb-2" />
+          <p className="text-sm text-muted-foreground">Click to upload audit files</p>
         </div>
       ) : (
         <div className="space-y-1">
           {files.map(f => (
-            <div key={f.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 group">
-              <FileText className="h-4 w-4 text-red-400 shrink-0" />
+            <div key={f.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/50 group">
+              <FileText className="h-4 w-4 text-destructive/60 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-900 truncate">{f.name}</p>
-                <p className="text-xs text-gray-400">{f.size}</p>
+                <p className="text-sm text-foreground truncate">{f.name}</p>
+                <p className="text-xs text-muted-foreground">{f.size} · {f.entityName} · {f.reviewPeriod}</p>
               </div>
               <button
                 onClick={() => handleRemove(f.id)}
-                className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -100,8 +118,82 @@ export function AuditFileUpload({ companyId, files, onFilesChange }: AuditFileUp
           ))}
         </div>
       )}
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-background">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Upload Audit Files</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-xs font-medium text-foreground block mb-1.5">Review Period *</label>
+              <select
+                value={selectedPeriod}
+                onChange={e => setSelectedPeriod(e.target.value)}
+                className="w-full border border-border rounded-md px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {availablePeriods.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-foreground block mb-1.5">Entity *</label>
+              <select
+                value={selectedEntity}
+                onChange={e => setSelectedEntity(e.target.value)}
+                className="w-full border border-border rounded-md px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {availableEntities.map(ent => (
+                  <option key={ent.id} value={ent.name}>{ent.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-foreground block mb-1.5">Files *</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full flex flex-col items-center justify-center py-6 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-colors"
+              >
+                <Upload className="h-5 w-5 text-muted-foreground/50 mb-1" />
+                <p className="text-xs text-muted-foreground">Click to select files</p>
+              </button>
+              {pendingFiles.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {pendingFiles.map((f, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs text-foreground bg-muted/50 rounded px-2 py-1.5">
+                      <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <span className="truncate flex-1">{f.name}</span>
+                      <span className="text-muted-foreground">{formatSize(f.size)}</span>
+                      <button onClick={() => removePendingFile(idx)} className="text-muted-foreground hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleConfirmUpload}
+              disabled={!selectedPeriod || !selectedEntity || pendingFiles.length === 0}
+            >
+              Upload {pendingFiles.length > 0 ? `(${pendingFiles.length})` : ''}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-export type { UploadedAuditFile };
