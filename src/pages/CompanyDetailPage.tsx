@@ -31,7 +31,6 @@ export default function CompanyDetailPage() {
   const [pendingStatus, setPendingStatus] = useState<AuditStatus | null>(null);
   const statusRef = useRef<HTMLDivElement>(null);
 
-
   useEffect(() => {
     if (!statusOpen) return;
     const handler = (e: MouseEvent) => {
@@ -40,8 +39,6 @@ export default function CompanyDetailPage() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [statusOpen]);
-
-
 
   const company = companies.find(c => c.id === companyId);
   if (!company) {
@@ -71,15 +68,6 @@ export default function CompanyDetailPage() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden relative">
-      {/* Sync blocking overlay */}
-      {isSyncing && (
-        <div className="absolute inset-0 z-[100] bg-white/60 backdrop-blur-sm flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-            <p className="text-sm font-medium text-gray-700">Syncing data, please wait...</p>
-          </div>
-        </div>
-      )}
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 bg-white shrink-0">
         <button
@@ -125,7 +113,6 @@ export default function CompanyDetailPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Review Period */}
             <div className="flex flex-col items-end gap-1">
               <label className="text-[10px] text-gray-400 uppercase tracking-wider">Cycle:</label>
               <select
@@ -139,6 +126,8 @@ export default function CompanyDetailPage() {
               </select>
             </div>
           </div>
+        </div>
+      </div>
 
       {/* Status confirmation dialog */}
       <AlertDialog open={!!pendingStatus} onOpenChange={(open) => { if (!open) setPendingStatus(null); }}>
