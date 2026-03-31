@@ -130,7 +130,7 @@ export default function PortfolioCompaniesPage() {
   const [fileListOpen, setFileListOpen] = useState<string | null>(null);
   const [selectedCycleId, setSelectedCycleId] = useState('__all__');
 
-  const selectedCycleLabel = selectedCycleId === '__all__' ? 'All Cycles' : (rcCycles.find(c => c.id === selectedCycleId)?.label || '');
+  
 
   const companyNamesInCycle = useMemo(() => {
     if (selectedCycleId === '__all__') return null;
