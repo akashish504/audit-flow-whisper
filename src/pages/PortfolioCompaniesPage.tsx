@@ -141,14 +141,15 @@ export default function PortfolioCompaniesPage() {
   const entities = companies.filter(c => c.parentId !== null);
 
   const cycleFilteredEntities = useMemo(() => {
-    if (!selectedCycleId) return entities;
+    if (companyNamesInCycle === null) return entities; // "All" selected
+    if (companyNamesInCycle.size === 0) return entities;
     return entities.filter(entity => {
       if (companyNamesInCycle.has(entity.name.toLowerCase())) return true;
       const parent = companies.find(c => c.id === entity.parentId);
       if (parent && companyNamesInCycle.has(parent.name.toLowerCase())) return true;
       return false;
     });
-  }, [entities, selectedCycleId, companyNamesInCycle, companies]);
+  }, [entities, companyNamesInCycle, companies]);
 
   const filtered = useMemo(() => {
     return cycleFilteredEntities.filter(c => {
