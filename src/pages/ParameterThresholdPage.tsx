@@ -125,7 +125,6 @@ export default function ParameterThresholdPage() {
             <li>An item is flagged if <strong>either</strong> threshold is breached</li>
             <li>Set absolute threshold to <strong>0</strong> to disable it (percentage-only mode)</li>
           </ul>
-        </div>
       </div>
     </div>
   );
