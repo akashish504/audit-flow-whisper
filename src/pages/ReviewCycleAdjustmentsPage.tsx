@@ -20,16 +20,7 @@ const stageBadge = (stage: ReviewStage) => {
 type CompanyFilter = 'all' | 'overdue' | 'in-review' | 'completed';
 
 const ReviewCycleAdjustmentsPage: React.FC = () => {
-  const { rcCycles, rcEntries, rcLogs, addReviewCycle, addOrUpdateRCEntries, updateRCEntryStage } = useAppState();
-  const [activeTab, setActiveTab] = useState<'companies'>('companies');
-
-  // Cycle Adjustments state
-  const [newCY, setNewCY] = useState('');
-  const [newFY, setNewFY] = useState('');
-  const [cycleConfirmDialog, setCycleConfirmDialog] = useState(false);
-  const [cycleCheckbox, setCycleCheckbox] = useState(false);
-
-  // Companies state
+  const { rcCycles, rcEntries, rcLogs, addOrUpdateRCEntries, updateRCEntryStage } = useAppState();
   const latestCycleId = rcCycles.length > 0 ? rcCycles[0].id : '';
   const [selectedCycleId, setSelectedCycleId] = useState(latestCycleId);
   const [companyFilter, setCompanyFilter] = useState<CompanyFilter>('all');
