@@ -4,6 +4,7 @@ import { Company, taggedFiles, AuditStatus } from '@/data/mockData';
 import { Building2, CheckCircle2, Paperclip, Search, FileText, X, ChevronDown, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { OrgChartUpload } from './OrgChartUpload';
 
 const statusBadge: Record<string, string> = {
   'Pending Review': 'bg-yellow-100 text-yellow-800',
