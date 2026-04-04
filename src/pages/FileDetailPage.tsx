@@ -135,17 +135,23 @@ export default function FileDetailPage() {
 
       {/* Document Preview */}
       <div className="flex-1 p-6">
-        {previewUrl ? (
+        {(blobUrl || previewUrl) ? (
           isPdf ? (
-            <iframe
-              src={previewUrl}
-              className="w-full h-full min-h-[700px] rounded-lg border border-border"
-              title={file.file_name}
-            />
+            blobUrl ? (
+              <iframe
+                src={blobUrl}
+                className="w-full h-full min-h-[700px] rounded-lg border border-border"
+                title={file.file_name}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-[500px]">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            )
           ) : isImage ? (
             <div className="flex items-center justify-center bg-muted/30 rounded-lg border border-border p-8">
               <img
-                src={previewUrl}
+                src={blobUrl || previewUrl}
                 alt={file.file_name}
                 className="max-w-full max-h-[700px] object-contain"
               />
