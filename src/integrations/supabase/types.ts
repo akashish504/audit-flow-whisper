@@ -14,7 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_files: {
+        Row: {
+          company_id: string
+          created_at: string
+          entity_name: string
+          file_name: string
+          file_size: string
+          file_type: string
+          id: string
+          review_period: string
+          s3_key: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          entity_name: string
+          file_name: string
+          file_size: string
+          file_type: string
+          id?: string
+          review_period: string
+          s3_key: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          entity_name?: string
+          file_name?: string
+          file_size?: string
+          file_type?: string
+          id?: string
+          review_period?: string
+          s3_key?: string
+        }
+        Relationships: []
+      }
+      org_chart_files: {
+        Row: {
+          company_id: string
+          created_at: string
+          file_name: string
+          file_type: string
+          id: string
+          s3_key: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          file_name: string
+          file_type: string
+          id?: string
+          s3_key: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          file_name?: string
+          file_type?: string
+          id?: string
+          s3_key?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
