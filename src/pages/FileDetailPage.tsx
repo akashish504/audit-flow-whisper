@@ -4,7 +4,7 @@ import { ArrowLeft, FileText, Loader2, ExternalLink, Sparkles } from 'lucide-rea
 import { supabase } from '@/integrations/supabase/client';
 import { getSignedUrl } from '@/lib/s3Upload';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -156,12 +156,6 @@ export default function FileDetailPage() {
       <div style={{ marginLeft: indent > 0 ? indent : undefined }}>
         {leafEntries.length > 0 && (
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-xs font-medium w-2/3">Field</TableHead>
-                <TableHead className="text-xs font-medium text-right">Value</TableHead>
-              </TableRow>
-            </TableHeader>
             <TableBody>
               {leafEntries.map(([key, value]) => (
                 <TableRow key={key}>
