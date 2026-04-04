@@ -48,7 +48,71 @@ export type Database = {
           review_period?: string
           s3_key?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_audit_files_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          audit_period: string | null
+          contact_email: string | null
+          contact_name: string | null
+          created_at: string
+          entity_status: string | null
+          geolocation: string | null
+          has_audit_report: boolean
+          id: string
+          is_archived: boolean
+          name: string
+          parent_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          audit_period?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          entity_status?: string | null
+          geolocation?: string | null
+          has_audit_report?: boolean
+          id?: string
+          is_archived?: boolean
+          name: string
+          parent_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          audit_period?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          entity_status?: string | null
+          geolocation?: string | null
+          has_audit_report?: boolean
+          id?: string
+          is_archived?: boolean
+          name?: string
+          parent_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       org_chart_files: {
         Row: {
@@ -75,7 +139,15 @@ export type Database = {
           id?: string
           s3_key?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_org_chart_files_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
