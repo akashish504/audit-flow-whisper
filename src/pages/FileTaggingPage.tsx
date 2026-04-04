@@ -14,7 +14,7 @@ const statusConfig: Record<string, { icon: React.ElementType; badge: string }> =
 type TagStep = 'cycle' | 'company' | 'entity' | 'confirm';
 
 export default function FileTaggingPage() {
-  const [files, setFiles] = useState<TaggedFile[]>(initialFiles);
+  const [files, setFiles] = useState<TaggedFile[]>([]);
   const navigate = useNavigate();
   const { rcCycles, rcEntries } = useAppState();
 
