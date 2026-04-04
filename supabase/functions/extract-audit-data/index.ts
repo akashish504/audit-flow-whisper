@@ -9,154 +9,34 @@ const corsHeaders = {
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev";
 
-const STANDARDIZATION_PROMPT = `Role: You are a Senior Financial Auditor and Data Architect.
-Task: Extract data from the attached audit report for the latest financial period and map it to the provided Fixed Schema JSON.
-Mapping Strategy:
+const STANDARDIZATION_PROMPT = `Role: You are a Senior Financial Auditor and Data Extraction Specialist.
 
-Terminology Mapping: Different auditors use different terms (e.g., "Revenue" vs "Turnover", "Property, Plant and Equipment" vs "Fixed Assets"). You must map these variations to the fixed keys in the schema below.
+Task: Extract ALL financial data from the attached audit report exactly as it appears in the document. Do NOT map to a predefined schema. Instead, preserve the original structure, labels, and hierarchy of the document.
 
-Empty Values: If a field in the schema does not exist in the report, use 0 for numeric fields and "" or null for strings.
+Rules:
 
-Latest Period: Only extract values for the most recent year shown in the columns.
+1. Key Naming: Convert each line item label from the document into snake_case (lowercase, spaces replaced with underscores). For example:
+   - "Property, Plant and Equipment" → "property_plant_and_equipment"
+   - "Trade and Other Receivables" → "trade_and_other_receivables"
+   - "Profit Before Tax" → "profit_before_tax"
 
-Mandatory Validation Rules:
+2. Structure: Preserve the natural grouping and hierarchy as presented in the document. Use nested JSON objects for sections and sub-sections (e.g., "non_current_assets", "current_assets" nested under "assets").
 
-Balance Sheet Equality: total_assets MUST equal (total_equity + total_liabilities).
+3. Values: Extract numeric values as numbers (not strings). Use 0 for dashes or blanks. Negative values should be represented as negative numbers.
 
-Cash Flow Reconciliation: (net_cash_from_operating_activities + net_cash_from_investing_activities + net_cash_from_financing_activities) + cash_at_start_of_year MUST equal cash_at_end_of_year.
+4. Completeness: Extract EVERY line item that appears in the financial statements. Do not skip or merge items. If a line item exists in the document, it must appear in the output.
 
-Net Profit Calculation: (profit_loss_before_tax_continuing - income_tax_expense_current + deferred_tax_credit_charge) MUST equal net_profit_loss_continuing_ops.
+5. Sections: Organize the output into top-level sections matching the document structure. Common sections include:
+   - "report_metadata" (entity name, UEN, reporting period, currency, audit firm, etc.)
+   - "statement_of_comprehensive_income" or "profit_and_loss" (as labeled in document)
+   - "balance_sheet" or "statement_of_financial_position" (as labeled in document)
+   - "cash_flow_statement" (if present)
+   - "statement_of_changes_in_equity" (if present)
+   - Any other statements present in the document
 
-Fixed Schema JSON to Populate:
-JSON
+6. Latest Period: Only extract values for the most recent financial period/year shown.
 
-
-
-
-{
-  "report_metadata": {
-    "entity_name": "string",
-    "uen": "string",
-    "reporting_period_end": "YYYY-MM-DD",
-    "currency": "string",
-    "audit_firm": "string",
-    "accounting_standard": "string",
-    "consolidated": boolean,
-    "going_concern_status": "string"
-  },
-  "statement_of_comprehensive_income": {
-    "revenue_metrics": {
-      "total_revenue": number,
-      "cost_of_sales": number,
-      "gross_profit": number,
-      "revenue_breakdown": {
-        "services_over_time": number,
-        "services_point_in_time": number,
-        "other_operating_revenue": number
-      }
-    },
-    "other_income": number,
-    "operating_expenses": {
-      "employee_benefits": number,
-      "depreciation_and_amortization": number,
-      "finance_costs": number,
-      "marketing_and_distribution": number,
-      "administrative_expenses": number,
-      "other_operating_expenses": number,
-      "impairment_losses": number
-    },
-    "taxation": {
-      "profit_loss_before_tax_continuing": number,
-      "income_tax_expense_current": number,
-      "deferred_tax_credit_charge": number,
-      "net_profit_loss_continuing_ops": number
-    },
-    "discontinued_operations": {
-      "profit_loss_from_discontinued_ops_net_of_tax": number
-    },
-    "other_comprehensive_income": {
-      "foreign_currency_translation_adjustments": number,
-      "remeasurement_of_defined_benefit_plans": number,
-      "total_comprehensive_income": number
-    }
-  },
-  "balance_sheet": {
-    "assets": {
-      "non_current_assets": {
-        "property_plant_and_equipment": number,
-        "intangible_assets_and_goodwill": number,
-        "right_of_use_assets": number,
-        "investments_in_subsidiaries": number,
-        "long_term_financial_assets": number,
-        "deferred_tax_assets": number,
-        "other_non_current_receivables": number
-      },
-      "current_assets": {
-        "inventories": number,
-        "trade_and_other_receivables": number,
-        "prepayments_and_accrued_income": number,
-        "current_tax_assets": number,
-        "cash_and_cash_equivalents": number,
-        "assets_held_for_sale": number
-      },
-      "total_assets": number
-    },
-    "equity_and_liabilities": {
-      "equity": {
-        "share_capital": number,
-        "preference_shares": number,
-        "reserves": number,
-        "retained_earnings_accumulated_losses": number,
-        "non_controlling_interest": number,
-        "total_equity": number
-      },
-      "non_current_liabilities": {
-        "long_term_borrowings": number,
-        "long_term_lease_liabilities": number,
-        "deferred_tax_liabilities": number,
-        "long_term_provisions": number
-      },
-      "current_liabilities": {
-        "trade_and_other_payables": number,
-        "short_term_borrowings": number,
-        "contract_liabilities": number,
-        "current_lease_liabilities": number,
-        "short_term_provisions": number,
-        "current_tax_liabilities": number
-      },
-      "total_liabilities": number
-    }
-  },
-  "cash_flow_statement": {
-    "operating_activities": {
-      "net_cash_from_operating_activities": number,
-      "adjustments_for_non_cash_items": {
-        "depreciation_amortization": number,
-        "share_based_payments": number,
-        "finance_costs_accrued": number,
-        "investment_income": number
-      }
-    },
-    "investing_activities": {
-      "capex_and_intangible_additions": number,
-      "acquisition_of_subsidiaries_net_of_cash": number,
-      "proceeds_from_disposal_of_assets": number,
-      "net_cash_from_investing_activities": number
-    },
-    "financing_activities": {
-      "proceeds_from_issue_of_shares": number,
-      "repayment_of_borrowings_and_leases": number,
-      "buyback_of_shares": number,
-      "interest_paid": number,
-      "net_cash_from_financing_activities": number
-    },
-    "cash_position": {
-      "net_increase_decrease_in_cash": number,
-      "cash_at_start_of_year": number,
-      "cash_at_end_of_year": number
-    }
-  }
-}
+7. Notes: Do not extract notes to the financial statements, only the primary financial statement figures.
 
 Output Rule: Return ONLY the JSON object. Do not provide conversational text.`;
 
