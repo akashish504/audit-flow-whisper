@@ -123,20 +123,6 @@ export default function FileDetailPage() {
   const isImage = file.file_type.startsWith('image/');
   const isExcel = file.file_name.endsWith('.xlsx') || file.file_name.endsWith('.xls');
 
-  // Flatten a nested object into key-value pairs with composite labels
-  const flattenObject = (obj: Record<string, any>, prefix = ''): { key: string; value: any }[] => {
-    const result: { key: string; value: any }[] = [];
-    for (const [k, v] of Object.entries(obj)) {
-      const label = prefix ? `${prefix} ${formatKey(k)}` : formatKey(k);
-      if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
-        result.push(...flattenObject(v, label));
-      } else {
-        result.push({ key: label, value: v });
-      }
-    }
-    return result;
-  };
-
   const formatKey = (key: string) => {
     return key
       .replace(/[_-]/g, ' ')
@@ -151,7 +137,56 @@ export default function FileDetailPage() {
     return String(val);
   };
 
-  // Render extracted data as grouped sections
+  // Recursively render nested objects with sub-headings
+  const renderNestedSection = (obj: Record<string, any>, depth: number = 0): React.ReactNode => {
+    const leafEntries: [string, any][] = [];
+    const nestedEntries: [string, Record<string, any>][] = [];
+
+    for (const [k, v] of Object.entries(obj)) {
+      if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+        nestedEntries.push([k, v]);
+      } else {
+        leafEntries.push([k, v]);
+      }
+    }
+
+    return (
+      <>
+        {leafEntries.length > 0 && (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs font-medium w-2/3">Field</TableHead>
+                <TableHead className="text-xs font-medium text-right">Value</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {leafEntries.map(([key, value]) => (
+                <TableRow key={key}>
+                  <TableCell className="text-xs text-foreground">{formatKey(key)}</TableCell>
+                  <TableCell className="text-xs text-right font-mono">{formatValue(value)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+
+        {nestedEntries.map(([key, value]) => {
+          const headingClass = depth === 0
+            ? 'text-sm font-semibold text-foreground bg-muted/30 px-4 py-2 border-y border-border'
+            : 'text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-1.5 border-b border-border/50';
+
+          return (
+            <div key={key}>
+              <div className={headingClass}>{formatKey(key)}</div>
+              {renderNestedSection(value, depth + 1)}
+            </div>
+          );
+        })}
+      </>
+    );
+  };
+
   const renderExtractedData = () => {
     if (!file.extracted_data) {
       return (
@@ -186,7 +221,6 @@ export default function FileDetailPage() {
         {topLevelEntries.map(([sectionKey, sectionValue]) => {
           if (sectionValue === null || sectionValue === undefined) return null;
 
-          // Simple primitive at top level
           if (typeof sectionValue !== 'object') {
             return (
               <div key={sectionKey} className="rounded-lg border border-border overflow-hidden">
@@ -200,30 +234,12 @@ export default function FileDetailPage() {
             );
           }
 
-          // Object or array — flatten and render as key-value table
-          const rows = flattenObject(sectionValue as Record<string, any>);
-
           return (
             <div key={sectionKey} className="rounded-lg border border-border overflow-hidden">
               <div className="bg-muted/50 px-4 py-2.5 border-b border-border">
                 <h3 className="text-sm font-semibold text-foreground">{formatKey(sectionKey)}</h3>
               </div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs font-medium w-2/3">Field</TableHead>
-                    <TableHead className="text-xs font-medium text-right">Value</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="text-xs text-foreground">{row.key}</TableCell>
-                      <TableCell className="text-xs text-right font-mono">{formatValue(row.value)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              {renderNestedSection(sectionValue as Record<string, any>, 0)}
             </div>
           );
         })}
