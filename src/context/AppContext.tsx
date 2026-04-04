@@ -84,7 +84,42 @@ export const useAppState = () => {
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [companies, setCompanies] = useState<Company[]>(initialCompanies);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companiesLoading, setCompaniesLoading] = useState(true);
+
+  // Load companies from Supabase
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('*')
+          .order('name');
+        if (error) throw error;
+        const mapped: Company[] = (data || []).map(row => ({
+          id: row.id,
+          name: row.name,
+          parentId: row.parent_id,
+          status: (row.status as Company['status']) || 'Pending Review',
+          auditPeriod: row.audit_period || '',
+          auditPeriods: [],
+          contactEmail: row.contact_email || '',
+          contactName: row.contact_name || '',
+          hasAuditReport: row.has_audit_report,
+          isArchived: row.is_archived,
+          entityStatus: row.entity_status as Company['status'] | undefined,
+          geolocation: row.geolocation || undefined,
+        }));
+        setCompanies(mapped);
+      } catch (err) {
+        console.error('Failed to load companies:', err);
+        setCompanies(initialCompanies);
+      } finally {
+        setCompaniesLoading(false);
+      }
+    };
+    load();
+  }, []);
   const [emails, setEmails] = useState<EmailThread[]>(initialEmails);
   const [fieldThresholds, setFieldThresholdsRaw] = useState<Record<string, number>>(defaultFieldThresholds);
   const [absoluteThresholds, setAbsoluteThresholdsRaw] = useState<Record<string, number>>(defaultAbsoluteThresholds);
