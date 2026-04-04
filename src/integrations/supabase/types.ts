@@ -19,6 +19,7 @@ export type Database = {
           company_id: string
           created_at: string
           entity_name: string
+          extracted_data: Json | null
           file_name: string
           file_size: string
           file_type: string
@@ -30,6 +31,7 @@ export type Database = {
           company_id: string
           created_at?: string
           entity_name: string
+          extracted_data?: Json | null
           file_name: string
           file_size: string
           file_type: string
@@ -41,6 +43,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           entity_name?: string
+          extracted_data?: Json | null
           file_name?: string
           file_size?: string
           file_type?: string
