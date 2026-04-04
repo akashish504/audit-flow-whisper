@@ -47,6 +47,7 @@ function buildDiscrepancies(thresholds: Record<string, number>, absoluteThreshol
 interface AppState {
   companies: Company[];
   companiesLoading: boolean;
+  emails: EmailThread[];
   discrepancies: DiscrepancyItem[];
   fieldThresholds: Record<string, number>;
   absoluteThresholds: Record<string, number>;
