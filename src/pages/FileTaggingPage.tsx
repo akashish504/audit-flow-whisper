@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { taggedFiles as initialFiles, TaggedFile, companies } from '@/data/mockData';
+import { TaggedFile, companies } from '@/data/mockData';
 import { useAppState } from '@/context/AppContext';
 import { FileText, Upload, Tag, CheckCircle2, Clock, AlertTriangle, RotateCcw, ChevronLeft, CloudUpload } from 'lucide-react';
 import { toast } from 'sonner';
