@@ -7,12 +7,13 @@ import { uploadFileToS3, generateS3Key, getSignedUrl } from '@/lib/s3Upload';
 interface OrgChartUploadProps {
   companyId: string;
   onFileUploaded: (file: File, url: string) => void;
+  onFileLoaded?: (info: { name: string; url: string; type: string }) => void;
   uploadedFile?: { name: string; url: string; type: string } | null;
   onClear: () => void;
   onExtractionStarted?: () => void;
 }
 
-export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClear, onExtractionStarted }: OrgChartUploadProps) {
+export function OrgChartUpload({ companyId, onFileUploaded, onFileLoaded, uploadedFile, onClear, onExtractionStarted }: OrgChartUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -37,7 +38,7 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
 
       if (data) {
         const url = await getSignedUrl(data.s3_key, 'read');
-        onFileUploaded({ name: data.file_name } as File, url);
+        onFileLoaded?.({ name: data.file_name, url, type: data.file_type });
       }
     } catch (err) {
       console.error('Failed to load org chart:', err);
