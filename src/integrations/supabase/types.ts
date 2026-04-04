@@ -104,6 +104,7 @@ export type Database = {
           has_audit_report: boolean
           id: string
           is_archived: boolean
+          legacy_id: string | null
           name: string
           parent_id: string | null
           status: string
@@ -119,6 +120,7 @@ export type Database = {
           has_audit_report?: boolean
           id?: string
           is_archived?: boolean
+          legacy_id?: string | null
           name: string
           parent_id?: string | null
           status?: string
@@ -134,6 +136,7 @@ export type Database = {
           has_audit_report?: boolean
           id?: string
           is_archived?: boolean
+          legacy_id?: string | null
           name?: string
           parent_id?: string | null
           status?: string
