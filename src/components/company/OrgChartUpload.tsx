@@ -50,9 +50,9 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const allowed = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'application/pdf'];
+    const allowed = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'application/pdf', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
     if (!allowed.includes(file.type)) {
-      toast.error('Please upload an image (PNG, JPG, SVG, WebP) or PDF file');
+      toast.error('Please upload an image (PNG, JPG, SVG, WebP), PDF, or Excel file');
       return;
     }
 
