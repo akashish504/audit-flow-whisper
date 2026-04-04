@@ -38,7 +38,7 @@ export function OrgChartUpload({ companyId, onFileUploaded, onFileLoaded, upload
 
       if (data) {
         const url = await getSignedUrl(data.s3_key, 'read');
-        onFileUploaded({ name: data.file_name } as File, url);
+        onFileLoaded?.({ name: data.file_name, url, type: data.file_type });
       }
     } catch (err) {
       console.error('Failed to load org chart:', err);
