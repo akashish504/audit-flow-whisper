@@ -163,7 +163,7 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/png,image/jpeg,image/svg+xml,image/webp,application/pdf"
+        accept="image/png,image/jpeg,image/svg+xml,image/webp,application/pdf,.xlsx,.xls"
         onChange={handleFileChange}
         className="hidden"
       />
