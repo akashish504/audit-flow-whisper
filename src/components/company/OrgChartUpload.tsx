@@ -1,6 +1,8 @@
-import { useState, useRef } from 'react';
-import { Upload, RefreshCw, FileImage, X } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Upload, RefreshCw, FileImage, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { uploadFileToS3, generateS3Key, getSignedUrl } from '@/lib/s3Upload';
 
 interface OrgChartUploadProps {
   companyId: string;
@@ -11,8 +13,39 @@ interface OrgChartUploadProps {
 
 export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClear }: OrgChartUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Load existing org chart from Supabase on mount
+  useEffect(() => {
+    loadOrgChart();
+  }, [companyId]);
+
+  const loadOrgChart = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('org_chart_files')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        const url = await getSignedUrl(data.s3_key, 'read');
+        onFileUploaded({ name: data.file_name } as File, url);
+      }
+    } catch (err) {
+      console.error('Failed to load org chart:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -22,31 +55,87 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
       return;
     }
 
-    const url = URL.createObjectURL(file);
-    onFileUploaded(file, url);
-    toast.success(`Org chart "${file.name}" uploaded`);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    setUploading(true);
+    try {
+      const s3Key = generateS3Key(`org-chart/${companyId}`, file.name);
+
+      // Upload to S3
+      await uploadFileToS3(file, s3Key);
+
+      // Save metadata to Supabase
+      const { error } = await supabase
+        .from('org_chart_files')
+        .insert({
+          company_id: companyId,
+          file_name: file.name,
+          file_type: file.type,
+          s3_key: s3Key,
+        });
+
+      if (error) throw error;
+
+      // Get signed URL for preview
+      const url = await getSignedUrl(s3Key, 'read');
+      onFileUploaded(file, url);
+      toast.success(`Org chart "${file.name}" uploaded to S3`);
+    } catch (err: any) {
+      console.error('Upload failed:', err);
+      toast.error(`Upload failed: ${err.message}`);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
+  const handleClear = async () => {
+    try {
+      // Delete all org chart records for this company
+      const { error } = await supabase
+        .from('org_chart_files')
+        .delete()
+        .eq('company_id', companyId);
+
+      if (error) throw error;
+      onClear();
+      toast.success('Org chart removed');
+    } catch (err: any) {
+      toast.error(`Failed to remove: ${err.message}`);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="border border-border rounded-lg bg-background p-4 flex items-center justify-center py-12">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
-    <div className="border border-gray-200 rounded-lg bg-white p-4">
+    <div className="border border-border rounded-lg bg-background p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wider">Org Chart Document</h3>
+        <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Org Chart Document</h3>
         <div className="flex items-center gap-2">
           {uploadedFile && (
             <button
-              onClick={onClear}
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition-colors"
+              onClick={handleClear}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
             >
               <X className="h-3 w-3" /> Remove
             </button>
           )}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
+            disabled={uploading}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
           >
-            {uploadedFile ? <RefreshCw className="h-3 w-3" /> : <Upload className="h-3 w-3" />}
-            {uploadedFile ? 'Re-upload' : 'Upload'}
+            {uploading ? (
+              <><Loader2 className="h-3 w-3 animate-spin" /> Uploading...</>
+            ) : uploadedFile ? (
+              <><RefreshCw className="h-3 w-3" /> Re-upload</>
+            ) : (
+              <><Upload className="h-3 w-3" /> Upload</>
+            )}
           </button>
         </div>
       </div>
@@ -61,12 +150,12 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
 
       {uploadedFile ? (
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <FileImage className="h-3.5 w-3.5" />
             <span className="truncate">{uploadedFile.name}</span>
           </div>
           {uploadedFile.type === 'application/pdf' ? (
-            <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+            <div className="border border-border rounded-lg overflow-hidden bg-muted/30">
               <iframe
                 src={uploadedFile.url}
                 className="w-full h-[500px]"
@@ -74,7 +163,7 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
               />
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+            <div className="border border-border rounded-lg overflow-hidden bg-muted/30 flex items-center justify-center">
               <img
                 src={uploadedFile.url}
                 alt="Org Chart"
@@ -85,12 +174,12 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
         </div>
       ) : (
         <div
-          onClick={() => fileInputRef.current?.click()}
-          className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
+          onClick={() => !uploading && fileInputRef.current?.click()}
+          className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-colors"
         >
-          <Upload className="h-8 w-8 text-gray-300 mb-2" />
-          <p className="text-sm text-gray-500">Click to upload org chart</p>
-          <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG, WebP, or PDF</p>
+          <Upload className="h-8 w-8 text-muted-foreground/30 mb-2" />
+          <p className="text-sm text-muted-foreground">Click to upload org chart</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">PNG, JPG, SVG, WebP, or PDF</p>
         </div>
       )}
     </div>
