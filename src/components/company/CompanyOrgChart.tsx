@@ -187,6 +187,7 @@ export function CompanyOrgChart({ companyId }: { companyId: string }) {
         <OrgChartUpload
           companyId={companyId}
           onFileUploaded={handleOrgChartUploaded}
+          onFileLoaded={handleFileLoaded}
           uploadedFile={orgChartFile}
           onClear={handleClear}
           onExtractionStarted={handleExtractionStarted}
