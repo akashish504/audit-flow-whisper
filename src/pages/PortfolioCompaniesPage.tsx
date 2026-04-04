@@ -121,7 +121,7 @@ function FileListPopover({ companyId, onClose }: { companyId: string; onClose: (
 }
 
 export default function PortfolioCompaniesPage() {
-  const { companies, updateCompanyStatus, rcCycles, rcEntries } = useAppState();
+  const { companies, companiesLoading, updateCompanyStatus, rcCycles, rcEntries } = useAppState();
   const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
