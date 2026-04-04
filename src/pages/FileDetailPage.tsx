@@ -74,7 +74,7 @@ export default function FileDetailPage() {
   };
 
   const handleExtract = async () => {
-    if (!file || !previewUrl) return;
+    if (!file) return;
     setExtracting(true);
     try {
       const { data, error } = await supabase.functions.invoke('extract-audit-data', {
