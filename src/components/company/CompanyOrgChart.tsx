@@ -73,6 +73,7 @@ export function CompanyOrgChart({ companyId }: { companyId: string }) {
   const [uploadExpanded, setUploadExpanded] = useState(true);
   const [entities, setEntities] = useState<OrgEntity[]>([]);
   const [entitiesLoading, setEntitiesLoading] = useState(true);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   // Load entities from Supabase
   useEffect(() => {
@@ -88,14 +89,18 @@ export function CompanyOrgChart({ companyId }: { companyId: string }) {
         .eq('company_id', companyId)
         .order('sequential_id');
       if (error) throw error;
-      setEntities((data || []).map(row => ({
+      const mapped = (data || []).map(row => ({
         id: row.id,
         sequential_id: row.sequential_id,
         entity_name: row.entity_name,
         geolocation: row.geolocation,
         is_parent: row.is_parent,
         children: row.children || [],
-      })));
+      }));
+      setEntities(mapped);
+      if (mapped.length > 0) {
+        setIsExtracting(false);
+      }
     } catch (err) {
       console.error('Failed to load entities:', err);
     } finally {
@@ -103,17 +108,63 @@ export function CompanyOrgChart({ companyId }: { companyId: string }) {
     }
   };
 
+  const startExtractionPolling = () => {
+    setIsExtracting(true);
+    let attempts = 0;
+    const intervalId = window.setInterval(async () => {
+      attempts += 1;
+      try {
+        const { data, error } = await supabase
+          .from('entities')
+          .select('*')
+          .eq('company_id', companyId)
+          .order('sequential_id');
+
+        if (error) throw error;
+
+        const mapped = (data || []).map(row => ({
+          id: row.id,
+          sequential_id: row.sequential_id,
+          entity_name: row.entity_name,
+          geolocation: row.geolocation,
+          is_parent: row.is_parent,
+          children: row.children || [],
+        }));
+
+        if (mapped.length > 0) {
+          setEntities(mapped);
+          setEntitiesLoading(false);
+          setIsExtracting(false);
+          window.clearInterval(intervalId);
+        } else if (attempts >= 15) {
+          setIsExtracting(false);
+          window.clearInterval(intervalId);
+        }
+      } catch (err) {
+        console.error('Failed while polling entities:', err);
+        setIsExtracting(false);
+        window.clearInterval(intervalId);
+      }
+    }, 2000);
+  };
+
   const handleOrgChartUploaded = (_file: File, url: string) => {
     setOrgChartFile({ name: _file.name, url, type: _file.type });
     setUploadExpanded(false);
-    // Reload entities in case they were added after upload
     loadEntities();
+  };
+
+  const handleExtractionStarted = () => {
+    setEntities([]);
+    setEntitiesLoading(false);
+    startExtractionPolling();
   };
 
   const handleClear = () => {
     setOrgChartFile(null);
     setUploadExpanded(true);
-    // Entities will be cleared via OrgChartUpload's handleClear which also deletes entities
+    setEntities([]);
+    setIsExtracting(false);
   };
 
   const root = entities.find(e => e.is_parent);
@@ -134,12 +185,17 @@ export function CompanyOrgChart({ companyId }: { companyId: string }) {
           onFileUploaded={handleOrgChartUploaded}
           uploadedFile={orgChartFile}
           onClear={handleClear}
+          onExtractionStarted={handleExtractionStarted}
         />
       )}
 
-      {entitiesLoading ? (
-        <div className="flex items-center justify-center py-12">
+      {entitiesLoading || isExtracting ? (
+        <div className="flex flex-col items-center justify-center py-12 gap-3">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <div className="text-center">
+            <p className="text-sm text-foreground">Extracting entity structure...</p>
+            <p className="text-xs text-muted-foreground mt-1">This can take a few seconds for larger charts.</p>
+          </div>
         </div>
       ) : entities.length > 0 ? (
         <div>
@@ -154,8 +210,8 @@ export function CompanyOrgChart({ companyId }: { companyId: string }) {
         </div>
       ) : orgChartFile ? (
         <div className="text-center py-8">
-          <p className="text-sm text-muted-foreground">No entities parsed yet.</p>
-          <p className="text-xs text-muted-foreground mt-1">Use ChatGPT with the extraction prompt to parse the org chart, then paste the JSON below.</p>
+          <p className="text-sm text-muted-foreground">No entities were extracted automatically.</p>
+          <p className="text-xs text-muted-foreground mt-1">You can still paste JSON manually below as a fallback.</p>
           <EntityJsonInput companyId={companyId} onEntitiesSaved={loadEntities} />
         </div>
       ) : null}

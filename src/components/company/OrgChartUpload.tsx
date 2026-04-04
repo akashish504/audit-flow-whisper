@@ -9,9 +9,10 @@ interface OrgChartUploadProps {
   onFileUploaded: (file: File, url: string) => void;
   uploadedFile?: { name: string; url: string; type: string } | null;
   onClear: () => void;
+  onExtractionStarted?: () => void;
 }
 
-export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClear }: OrgChartUploadProps) {
+export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClear, onExtractionStarted }: OrgChartUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
