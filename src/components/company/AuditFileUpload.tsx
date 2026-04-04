@@ -1,8 +1,10 @@
-import { useState, useRef } from 'react';
-import { Upload, FileText, Trash2, X } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Upload, FileText, Trash2, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { uploadFileToS3, generateS3Key, getSignedUrl } from '@/lib/s3Upload';
 
 export interface UploadedAuditFile {
   id: string;
@@ -13,6 +15,7 @@ export interface UploadedAuditFile {
   uploadedAt: string;
   reviewPeriod: string;
   entityName: string;
+  s3Key?: string;
 }
 
 interface AuditFileUploadProps {
@@ -35,6 +38,43 @@ export function AuditFileUpload({ companyId, files, onFilesChange, availableEnti
   const [selectedPeriod, setSelectedPeriod] = useState('');
   const [selectedEntity, setSelectedEntity] = useState('');
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [loadingFiles, setLoadingFiles] = useState(true);
+
+  // Load files from Supabase on mount
+  useEffect(() => {
+    loadFiles();
+  }, [companyId]);
+
+  const loadFiles = async () => {
+    setLoadingFiles(true);
+    try {
+      const { data, error } = await supabase
+        .from('audit_files')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const loaded: UploadedAuditFile[] = (data || []).map((row: any) => ({
+        id: row.id,
+        name: row.file_name,
+        size: row.file_size,
+        type: row.file_type,
+        url: '', // Will be fetched on demand via signed URL
+        uploadedAt: row.created_at,
+        reviewPeriod: row.review_period,
+        entityName: row.entity_name,
+        s3Key: row.s3_key,
+      }));
+      onFilesChange(loaded);
+    } catch (err) {
+      console.error('Failed to load audit files:', err);
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
 
   const handleUploadClick = () => {
     setSelectedPeriod(availablePeriods[0] || '');
@@ -50,32 +90,83 @@ export function AuditFileUpload({ companyId, files, onFilesChange, availableEnti
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleConfirmUpload = () => {
+  const handleConfirmUpload = async () => {
     if (!selectedPeriod || !selectedEntity || pendingFiles.length === 0) {
       toast.error('Please select review period, entity, and at least one file');
       return;
     }
 
-    const newFiles: UploadedAuditFile[] = pendingFiles.map(file => ({
-      id: `audit-file-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      name: file.name,
-      size: formatSize(file.size),
-      type: file.type,
-      url: URL.createObjectURL(file),
-      uploadedAt: new Date().toISOString(),
-      reviewPeriod: selectedPeriod,
-      entityName: selectedEntity,
-    }));
+    setUploading(true);
+    try {
+      const newFiles: UploadedAuditFile[] = [];
 
-    onFilesChange([...newFiles, ...files]);
-    toast.success(`${newFiles.length} file(s) uploaded for ${selectedEntity} — ${selectedPeriod}`);
-    setDialogOpen(false);
-    setPendingFiles([]);
+      for (const file of pendingFiles) {
+        const s3Key = generateS3Key(`audit/${companyId}`, file.name);
+
+        // Upload to S3
+        await uploadFileToS3(file, s3Key);
+
+        // Save metadata to Supabase
+        const { data, error } = await supabase
+          .from('audit_files')
+          .insert({
+            company_id: companyId,
+            entity_name: selectedEntity,
+            review_period: selectedPeriod,
+            file_name: file.name,
+            file_size: formatSize(file.size),
+            file_type: file.type,
+            s3_key: s3Key,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        newFiles.push({
+          id: data.id,
+          name: file.name,
+          size: formatSize(file.size),
+          type: file.type,
+          url: '',
+          uploadedAt: data.created_at,
+          reviewPeriod: selectedPeriod,
+          entityName: selectedEntity,
+          s3Key: s3Key,
+        });
+      }
+
+      onFilesChange([...newFiles, ...files]);
+      toast.success(`${newFiles.length} file(s) uploaded to S3 for ${selectedEntity} — ${selectedPeriod}`);
+      setDialogOpen(false);
+      setPendingFiles([]);
+    } catch (err: any) {
+      console.error('Upload failed:', err);
+      toast.error(`Upload failed: ${err.message}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const handleRemove = (id: string) => {
-    onFilesChange(files.filter(f => f.id !== id));
-    toast.success('File removed');
+  const handleRemove = async (id: string) => {
+    try {
+      const { error } = await supabase.from('audit_files').delete().eq('id', id);
+      if (error) throw error;
+      onFilesChange(files.filter(f => f.id !== id));
+      toast.success('File removed');
+    } catch (err: any) {
+      toast.error(`Failed to remove: ${err.message}`);
+    }
+  };
+
+  const handleFileClick = async (file: UploadedAuditFile) => {
+    if (!file.s3Key) return;
+    try {
+      const url = await getSignedUrl(file.s3Key, 'read');
+      window.open(url, '_blank');
+    } catch (err: any) {
+      toast.error(`Failed to get download URL: ${err.message}`);
+    }
   };
 
   const removePendingFile = (idx: number) => {
@@ -91,7 +182,11 @@ export function AuditFileUpload({ companyId, files, onFilesChange, availableEnti
         </Button>
       </div>
 
-      {files.length === 0 ? (
+      {loadingFiles ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : files.length === 0 ? (
         <div
           onClick={handleUploadClick}
           className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-colors"
@@ -104,8 +199,11 @@ export function AuditFileUpload({ companyId, files, onFilesChange, availableEnti
           {files.map(f => (
             <div key={f.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/50 group">
               <FileText className="h-4 w-4 text-destructive/60 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-foreground truncate">{f.name}</p>
+              <div
+                className="flex-1 min-w-0 cursor-pointer"
+                onClick={() => handleFileClick(f)}
+              >
+                <p className="text-sm text-foreground truncate hover:underline">{f.name}</p>
                 <p className="text-xs text-muted-foreground">{f.size} · {f.entityName} · {f.reviewPeriod}</p>
               </div>
               <button
@@ -184,12 +282,16 @@ export function AuditFileUpload({ companyId, files, onFilesChange, availableEnti
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={uploading}>Cancel</Button>
             <Button
               onClick={handleConfirmUpload}
-              disabled={!selectedPeriod || !selectedEntity || pendingFiles.length === 0}
+              disabled={!selectedPeriod || !selectedEntity || pendingFiles.length === 0 || uploading}
             >
-              Upload {pendingFiles.length > 0 ? `(${pendingFiles.length})` : ''}
+              {uploading ? (
+                <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Uploading...</>
+              ) : (
+                <>Upload {pendingFiles.length > 0 ? `(${pendingFiles.length})` : ''}</>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
