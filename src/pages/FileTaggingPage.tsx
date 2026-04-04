@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { taggedFiles as initialFiles, TaggedFile, companies } from '@/data/mockData';
+import { TaggedFile, companies } from '@/data/mockData';
 import { useAppState } from '@/context/AppContext';
 import { FileText, Upload, Tag, CheckCircle2, Clock, AlertTriangle, RotateCcw, ChevronLeft, CloudUpload } from 'lucide-react';
 import { toast } from 'sonner';
@@ -14,7 +14,7 @@ const statusConfig: Record<string, { icon: React.ElementType; badge: string }> =
 type TagStep = 'cycle' | 'company' | 'entity' | 'confirm';
 
 export default function FileTaggingPage() {
-  const [files, setFiles] = useState<TaggedFile[]>(initialFiles);
+  const [files, setFiles] = useState<TaggedFile[]>([]);
   const navigate = useNavigate();
   const { rcCycles, rcEntries } = useAppState();
 
