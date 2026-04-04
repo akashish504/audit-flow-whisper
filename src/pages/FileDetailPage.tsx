@@ -156,12 +156,6 @@ export default function FileDetailPage() {
       <div style={{ marginLeft: indent > 0 ? indent : undefined }}>
         {leafEntries.length > 0 && (
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-xs font-medium w-2/3">Field</TableHead>
-                <TableHead className="text-xs font-medium text-right">Value</TableHead>
-              </TableRow>
-            </TableHeader>
             <TableBody>
               {leafEntries.map(([key, value]) => (
                 <TableRow key={key}>
