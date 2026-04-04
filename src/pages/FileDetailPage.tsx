@@ -150,8 +150,10 @@ export default function FileDetailPage() {
       }
     }
 
+    const indent = depth * 16; // px per nesting level
+
     return (
-      <>
+      <div style={{ marginLeft: indent > 0 ? indent : undefined }}>
         {leafEntries.length > 0 && (
           <Table>
             <TableHeader>
@@ -183,7 +185,7 @@ export default function FileDetailPage() {
             </div>
           );
         })}
-      </>
+      </div>
     );
   };
 
