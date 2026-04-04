@@ -182,6 +182,10 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
                 title="Org Chart PDF"
               />
             </div>
+          ) : uploadedFile.type?.includes('sheet') || uploadedFile.type?.includes('excel') || uploadedFile.name?.endsWith('.xlsx') || uploadedFile.name?.endsWith('.xls') ? (
+            <div className="border border-border rounded-lg bg-muted/30 flex items-center justify-center py-8">
+              <p className="text-xs text-muted-foreground">Excel file uploaded — entities will be extracted automatically.</p>
+            </div>
           ) : (
             <div className="border border-border rounded-lg overflow-hidden bg-muted/30 flex items-center justify-center">
               <img
