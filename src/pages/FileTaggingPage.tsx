@@ -333,7 +333,10 @@ export default function FileTaggingPage() {
                       accept=".pdf,.xlsx,.docx"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
-                        if (file) setUploadFileName(file.name);
+                        if (file) {
+                          setUploadFileName(file.name);
+                          setUploadFile(file);
+                        }
                       }}
                     />
                   </label>
