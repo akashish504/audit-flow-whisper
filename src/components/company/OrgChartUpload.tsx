@@ -13,7 +13,7 @@ interface OrgChartUploadProps {
   onExtractionStarted?: () => void;
 }
 
-export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClear, onExtractionStarted }: OrgChartUploadProps) {
+export function OrgChartUpload({ companyId, onFileUploaded, onFileLoaded, uploadedFile, onClear, onExtractionStarted }: OrgChartUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
