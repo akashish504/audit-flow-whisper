@@ -254,7 +254,16 @@ export default function FileTaggingPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {files.map(file => {
+            {loadingFiles ? (
+              <tr><td colSpan={7} className="px-4 py-12 text-center">
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">Loading files...</p>
+              </td></tr>
+            ) : files.length === 0 ? (
+              <tr><td colSpan={7} className="px-4 py-12 text-center">
+                <p className="text-sm text-gray-500">No files uploaded yet. Click "Upload File" to get started.</p>
+              </td></tr>
+            ) : files.map(file => {
               const config = statusConfig[file.status] || statusConfig.pending;
               const StatusIcon = config.icon;
               return (
