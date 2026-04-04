@@ -89,15 +89,15 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
 
   const handleClear = async () => {
     try {
-      // Delete all org chart records for this company
-      const { error } = await supabase
-        .from('org_chart_files')
-        .delete()
-        .eq('company_id', companyId);
-
-      if (error) throw error;
+      // Delete all org chart records and entities for this company
+      const [orgRes, entRes] = await Promise.all([
+        supabase.from('org_chart_files').delete().eq('company_id', companyId),
+        supabase.from('entities').delete().eq('company_id', companyId),
+      ]);
+      if (orgRes.error) throw orgRes.error;
+      if (entRes.error) throw entRes.error;
       onClear();
-      toast.success('Org chart removed');
+      toast.success('Org chart and entities removed');
     } catch (err: any) {
       toast.error(`Failed to remove: ${err.message}`);
     }
