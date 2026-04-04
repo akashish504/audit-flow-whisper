@@ -25,7 +25,7 @@ const allStatuses: AuditStatus[] = ['Pending Review', 'Discrepancy Identified', 
 
 export default function CompanyDetailPage() {
   const { companyId } = useParams<{ companyId: string }>();
-  const { companies, updateCompanyStatus, setActiveAuditPeriod, rcCycles } = useAppState();
+  const { companies, updateCompanyStatus } = useAppState();
   const navigate = useNavigate();
   const [statusOpen, setStatusOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<AuditStatus | null>(null);
