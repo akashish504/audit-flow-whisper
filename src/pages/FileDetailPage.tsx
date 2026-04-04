@@ -78,7 +78,7 @@ export default function FileDetailPage() {
     setExtracting(true);
     try {
       const { data, error } = await supabase.functions.invoke('extract-audit-data', {
-        body: { file_url: previewUrl, file_name: file.file_name, file_id: file.id },
+        body: { audit_file_id: file.id, s3_key: file.s3_key },
       });
 
       if (error) throw error;
