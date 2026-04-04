@@ -59,6 +59,9 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
     try {
       const s3Key = generateS3Key(`org-chart/${companyId}`, file.name);
 
+      // Delete old entities when re-uploading
+      await supabase.from('entities').delete().eq('company_id', companyId);
+
       // Upload to S3
       await uploadFileToS3(file, s3Key);
 
