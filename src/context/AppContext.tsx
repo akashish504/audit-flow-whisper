@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { Company, AuditPeriod, companies as initialCompanies, EmailThread, emailThreads as initialEmails, DiscrepancyItem, DiscrepancyStatus, reconciliationData as initialReconciliationData, calculateVariance, ReviewCycle, ReviewCompanyEntry, ReviewCycleLog, ReviewStage, reviewCycles as initialReviewCycles, reviewCompanyEntries as initialReviewCompanyEntries, reviewCycleLogs as initialReviewCycleLogs, ReconciliationField } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
 // Extract all unique field names to build default thresholds
 const allFieldNames = new Set<string>();
