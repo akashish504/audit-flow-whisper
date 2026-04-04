@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -120,13 +121,57 @@ serve(async (req) => {
 
     // Determine MIME type
     const ext = s3_key.split(".").pop()?.toLowerCase() || "";
-    let mimeType = "application/pdf";
-    if (ext === "png") mimeType = "image/png";
-    else if (ext === "jpg" || ext === "jpeg") mimeType = "image/jpeg";
-    else if (ext === "svg") mimeType = "image/svg+xml";
-    else if (ext === "webp") mimeType = "image/webp";
-    else if (ext === "xlsx") mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    else if (ext === "xls") mimeType = "application/vnd.ms-excel";
+    const isSpreadsheet = ext === "xlsx" || ext === "xls";
+
+    let aiRequestBody: any;
+
+    if (isSpreadsheet) {
+      // Parse spreadsheet to text since Gemini doesn't support XLSX as file input
+      const workbook = XLSX.read(fileBytes, { type: "array" });
+      const textParts: string[] = [];
+      for (const sheetName of workbook.SheetNames) {
+        const csv = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]);
+        textParts.push(`=== Sheet: ${sheetName} ===\n${csv}`);
+      }
+      const spreadsheetText = textParts.join("\n\n");
+
+      aiRequestBody = {
+        model: "google/gemini-2.5-pro",
+        messages: [
+          { role: "system", content: EXTRACTION_PROMPT },
+          {
+            role: "user",
+            content: `Extract the complete organizational hierarchy from this spreadsheet data:\n\n${spreadsheetText}`,
+          },
+        ],
+      };
+    } else {
+      let mimeType = "application/pdf";
+      if (ext === "png") mimeType = "image/png";
+      else if (ext === "jpg" || ext === "jpeg") mimeType = "image/jpeg";
+      else if (ext === "svg") mimeType = "image/svg+xml";
+      else if (ext === "webp") mimeType = "image/webp";
+
+      aiRequestBody = {
+        model: "google/gemini-2.5-pro",
+        messages: [
+          { role: "system", content: EXTRACTION_PROMPT },
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: `data:${mimeType};base64,${base64File}` },
+              },
+              {
+                type: "text",
+                text: "Extract the complete organizational hierarchy from this document.",
+              },
+            ],
+          },
+        ],
+      };
+    }
 
     // 3. Send to Lovable AI
     const aiResponse = await fetch(
@@ -137,25 +182,7 @@ serve(async (req) => {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
-          messages: [
-            { role: "system", content: EXTRACTION_PROMPT },
-            {
-              role: "user",
-              content: [
-                {
-                  type: "image_url",
-                  image_url: { url: `data:${mimeType};base64,${base64File}` },
-                },
-                {
-                  type: "text",
-                  text: "Extract the complete organizational hierarchy from this document.",
-                },
-              ],
-            },
-          ],
-        }),
+        body: JSON.stringify(aiRequestBody),
       }
     );
 
