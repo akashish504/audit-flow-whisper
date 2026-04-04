@@ -121,7 +121,7 @@ function FileListPopover({ companyId, onClose }: { companyId: string; onClose: (
 }
 
 export default function PortfolioCompaniesPage() {
-  const { companies, updateCompanyStatus, rcCycles, rcEntries } = useAppState();
+  const { companies, companiesLoading, updateCompanyStatus, rcCycles, rcEntries } = useAppState();
   const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
@@ -138,7 +138,7 @@ export default function PortfolioCompaniesPage() {
     return new Set(rcEntries.filter(e => e.reviewCycleId === selectedCycleId).map(e => e.companyName.toLowerCase()));
   }, [selectedCycleId, rcEntries]);
 
-  const entities = companies.filter(c => c.parentId !== null);
+  const entities = companies;
 
   const cycleFilteredEntities = useMemo(() => {
     if (companyNamesInCycle === null) return entities; // "All" selected

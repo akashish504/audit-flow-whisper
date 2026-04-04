@@ -28,7 +28,8 @@ export function CompanyFiles({ companyId }: { companyId: string }) {
 
   const availablePeriods = useMemo(() => {
     if (!portfolioCompany) return [];
-    return portfolioCompany.auditPeriods.map(ap => ap.label);
+    const periods = portfolioCompany.auditPeriods.map(ap => ap.label);
+    return periods.length > 0 ? periods : ['Q4 2024', 'Q1 2025'];
   }, [portfolioCompany]);
 
   const files = entityFiles.filter(f => f.companyId === companyId || f.entityId === companyId);

@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { Company, AuditPeriod, companies as initialCompanies, EmailThread, emailThreads as initialEmails, DiscrepancyItem, DiscrepancyStatus, reconciliationData as initialReconciliationData, calculateVariance, ReviewCycle, ReviewCompanyEntry, ReviewCycleLog, ReviewStage, reviewCycles as initialReviewCycles, reviewCompanyEntries as initialReviewCompanyEntries, reviewCycleLogs as initialReviewCycleLogs, ReconciliationField } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
 // Extract all unique field names to build default thresholds
 const allFieldNames = new Set<string>();
@@ -45,6 +46,7 @@ function buildDiscrepancies(thresholds: Record<string, number>, absoluteThreshol
 
 interface AppState {
   companies: Company[];
+  companiesLoading: boolean;
   emails: EmailThread[];
   discrepancies: DiscrepancyItem[];
   fieldThresholds: Record<string, number>;
@@ -83,7 +85,42 @@ export const useAppState = () => {
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [companies, setCompanies] = useState<Company[]>(initialCompanies);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companiesLoading, setCompaniesLoading] = useState(true);
+
+  // Load companies from Supabase
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('*')
+          .order('name');
+        if (error) throw error;
+        const mapped: Company[] = (data || []).map(row => ({
+          id: row.id,
+          name: row.name,
+          parentId: row.parent_id,
+          status: (row.status as Company['status']) || 'Pending Review',
+          auditPeriod: row.audit_period || '',
+          auditPeriods: [],
+          contactEmail: row.contact_email || '',
+          contactName: row.contact_name || '',
+          hasAuditReport: row.has_audit_report,
+          isArchived: row.is_archived,
+          entityStatus: row.entity_status as Company['status'] | undefined,
+          geolocation: row.geolocation || undefined,
+        }));
+        setCompanies(mapped);
+      } catch (err) {
+        console.error('Failed to load companies:', err);
+        setCompanies(initialCompanies);
+      } finally {
+        setCompaniesLoading(false);
+      }
+    };
+    load();
+  }, []);
   const [emails, setEmails] = useState<EmailThread[]>(initialEmails);
   const [fieldThresholds, setFieldThresholdsRaw] = useState<Record<string, number>>(defaultFieldThresholds);
   const [absoluteThresholds, setAbsoluteThresholdsRaw] = useState<Record<string, number>>(defaultAbsoluteThresholds);
@@ -296,7 +333,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   return (
     <AppContext.Provider value={{
-      companies, emails, discrepancies, fieldThresholds, absoluteThresholds, setFieldThresholds, setAbsoluteThresholds,
+      companies, companiesLoading, emails, discrepancies, fieldThresholds, absoluteThresholds, setFieldThresholds, setAbsoluteThresholds,
       selectedCompanyId, setSelectedCompanyId,
       addEmail, attachReport, updateCompanyStatus, updateEntityStatus,
       addAuditPeriod, setActiveAuditPeriod, bulkCreateReviewCycles,
