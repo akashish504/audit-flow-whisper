@@ -50,9 +50,9 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const allowed = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'application/pdf'];
+    const allowed = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'application/pdf', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
     if (!allowed.includes(file.type)) {
-      toast.error('Please upload an image (PNG, JPG, SVG, WebP) or PDF file');
+      toast.error('Please upload an image (PNG, JPG, SVG, WebP), PDF, or Excel file');
       return;
     }
 
@@ -163,7 +163,7 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/png,image/jpeg,image/svg+xml,image/webp,application/pdf"
+        accept="image/png,image/jpeg,image/svg+xml,image/webp,application/pdf,.xlsx,.xls"
         onChange={handleFileChange}
         className="hidden"
       />
@@ -182,6 +182,10 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
                 title="Org Chart PDF"
               />
             </div>
+          ) : uploadedFile.type?.includes('sheet') || uploadedFile.type?.includes('excel') || uploadedFile.name?.endsWith('.xlsx') || uploadedFile.name?.endsWith('.xls') ? (
+            <div className="border border-border rounded-lg bg-muted/30 flex items-center justify-center py-8">
+              <p className="text-xs text-muted-foreground">Excel file uploaded — entities will be extracted automatically.</p>
+            </div>
           ) : (
             <div className="border border-border rounded-lg overflow-hidden bg-muted/30 flex items-center justify-center">
               <img
@@ -199,7 +203,7 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
         >
           <Upload className="h-8 w-8 text-muted-foreground/30 mb-2" />
           <p className="text-sm text-muted-foreground">Click to upload org chart</p>
-          <p className="text-xs text-muted-foreground/70 mt-1">PNG, JPG, SVG, WebP, or PDF</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">PNG, JPG, SVG, WebP, PDF, or Excel</p>
         </div>
       )}
     </div>
