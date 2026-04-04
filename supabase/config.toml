@@ -1,1 +1,7 @@
 project_id = "wfmutkwfztndsbrqwjit"
+
+[functions.s3-signed-url]
+verify_jwt = false
+
+[functions.extract-audit-data]
+verify_jwt = false
