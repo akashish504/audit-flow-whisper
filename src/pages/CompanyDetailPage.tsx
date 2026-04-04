@@ -112,20 +112,11 @@ export default function CompanyDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex flex-col items-end gap-1">
-              <label className="text-[10px] text-gray-400 uppercase tracking-wider">Cycle:</label>
-              <select
-                value={company.auditPeriods.find(p => p.isActive)?.id || ''}
-                onChange={e => handlePeriodChange(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-              >
-                {rcCycles.map(c => (
-                  <option key={c.id} value={c.id}>{c.label}</option>
-                ))}
-              </select>
+          {company.auditPeriod && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">Period: {company.auditPeriod}</span>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
