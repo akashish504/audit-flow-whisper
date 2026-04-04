@@ -332,7 +332,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   return (
     <AppContext.Provider value={{
-      companies, emails, discrepancies, fieldThresholds, absoluteThresholds, setFieldThresholds, setAbsoluteThresholds,
+      companies, companiesLoading, emails, discrepancies, fieldThresholds, absoluteThresholds, setFieldThresholds, setAbsoluteThresholds,
       selectedCompanyId, setSelectedCompanyId,
       addEmail, attachReport, updateCompanyStatus, updateEntityStatus,
       addAuditPeriod, setActiveAuditPeriod, bulkCreateReviewCycles,
