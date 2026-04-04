@@ -123,7 +123,35 @@ export default function FileDetailPage() {
   const isImage = file.file_type.startsWith('image/');
   const isExcel = file.file_name.endsWith('.xlsx') || file.file_name.endsWith('.xls');
 
-  // Render extracted data as tables
+  // Flatten a nested object into key-value pairs with composite labels
+  const flattenObject = (obj: Record<string, any>, prefix = ''): { key: string; value: any }[] => {
+    const result: { key: string; value: any }[] = [];
+    for (const [k, v] of Object.entries(obj)) {
+      const label = prefix ? `${prefix} ${formatKey(k)}` : formatKey(k);
+      if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+        result.push(...flattenObject(v, label));
+      } else {
+        result.push({ key: label, value: v });
+      }
+    }
+    return result;
+  };
+
+  const formatKey = (key: string) => {
+    return key
+      .replace(/[_-]/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
+  const formatValue = (val: any): string => {
+    if (val === null || val === undefined || val === '') return '—';
+    if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+    if (typeof val === 'number') return val.toLocaleString();
+    if (Array.isArray(val)) return JSON.stringify(val);
+    return String(val);
+  };
+
+  // Render extracted data as grouped sections
   const renderExtractedData = () => {
     if (!file.extracted_data) {
       return (
@@ -143,107 +171,62 @@ export default function FileDetailPage() {
 
     const data = file.extracted_data;
 
-    // If it's an array of objects, render as a single table
-    if (Array.isArray(data)) {
-      return renderTable(data, 'Extracted Data');
-    }
-
-    // If it's an object with nested arrays/objects, render each section
-    if (typeof data === 'object' && data !== null) {
-      const sections = Object.entries(data);
+    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
       return (
-        <div className="space-y-6">
-          {sections.map(([key, value]) => {
-            if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object') {
-              return renderTable(value as Record<string, any>[], formatKey(key));
-            }
-            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-              return renderKeyValueTable(value as Record<string, any>, formatKey(key));
-            }
-            // Simple value
-            return (
-              <div key={key} className="rounded-lg border border-border p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-2">{formatKey(key)}</h3>
-                <p className="text-sm text-muted-foreground">{String(value)}</p>
-              </div>
-            );
-          })}
+        <div className="rounded-lg border border-border p-4">
+          <pre className="text-xs text-muted-foreground whitespace-pre-wrap">{JSON.stringify(data, null, 2)}</pre>
         </div>
       );
     }
 
-    return (
-      <div className="rounded-lg border border-border p-4">
-        <pre className="text-xs text-muted-foreground whitespace-pre-wrap">{JSON.stringify(data, null, 2)}</pre>
-      </div>
-    );
-  };
+    const topLevelEntries = Object.entries(data as Record<string, any>);
 
-  const formatKey = (key: string) => {
-    return key
-      .replace(/[_-]/g, ' ')
-      .replace(/\b\w/g, (c) => c.toUpperCase());
-  };
-
-  const renderTable = (rows: Record<string, any>[], title: string) => {
-    if (!rows.length) return null;
-    const columns = Object.keys(rows[0]);
     return (
-      <div key={title} className="rounded-lg border border-border overflow-hidden">
-        <div className="bg-muted/50 px-4 py-2.5 border-b border-border">
-          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {columns.map((col) => (
-                  <TableHead key={col} className="text-xs font-medium">{formatKey(col)}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row, i) => (
-                <TableRow key={i}>
-                  {columns.map((col) => (
-                    <TableCell key={col} className="text-xs">
-                      {typeof row[col] === 'object' ? JSON.stringify(row[col]) : String(row[col] ?? '')}
-                    </TableCell>
+      <div className="space-y-6">
+        {topLevelEntries.map(([sectionKey, sectionValue]) => {
+          if (sectionValue === null || sectionValue === undefined) return null;
+
+          // Simple primitive at top level
+          if (typeof sectionValue !== 'object') {
+            return (
+              <div key={sectionKey} className="rounded-lg border border-border overflow-hidden">
+                <div className="bg-muted/50 px-4 py-2.5 border-b border-border">
+                  <h3 className="text-sm font-semibold text-foreground">{formatKey(sectionKey)}</h3>
+                </div>
+                <div className="px-4 py-3">
+                  <p className="text-sm text-foreground">{formatValue(sectionValue)}</p>
+                </div>
+              </div>
+            );
+          }
+
+          // Object or array — flatten and render as key-value table
+          const rows = flattenObject(sectionValue as Record<string, any>);
+
+          return (
+            <div key={sectionKey} className="rounded-lg border border-border overflow-hidden">
+              <div className="bg-muted/50 px-4 py-2.5 border-b border-border">
+                <h3 className="text-sm font-semibold text-foreground">{formatKey(sectionKey)}</h3>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs font-medium w-2/3">Field</TableHead>
+                    <TableHead className="text-xs font-medium text-right">Value</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((row, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="text-xs text-foreground">{row.key}</TableCell>
+                      <TableCell className="text-xs text-right font-mono">{formatValue(row.value)}</TableCell>
+                    </TableRow>
                   ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-    );
-  };
-
-  const renderKeyValueTable = (obj: Record<string, any>, title: string) => {
-    const entries = Object.entries(obj);
-    return (
-      <div key={title} className="rounded-lg border border-border overflow-hidden">
-        <div className="bg-muted/50 px-4 py-2.5 border-b border-border">
-          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs font-medium w-1/3">Field</TableHead>
-              <TableHead className="text-xs font-medium">Value</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {entries.map(([key, value]) => (
-              <TableRow key={key}>
-                <TableCell className="text-xs font-medium text-foreground">{formatKey(key)}</TableCell>
-                <TableCell className="text-xs">
-                  {typeof value === 'object' ? JSON.stringify(value) : String(value ?? '')}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                </TableBody>
+              </Table>
+            </div>
+          );
+        })}
       </div>
     );
   };
