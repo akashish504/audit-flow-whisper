@@ -213,10 +213,13 @@ serve(async (req) => {
       throw new Error(`Failed to download file [${fileResponse.status}]`);
     }
 
-    const fileBytes = await fileResponse.arrayBuffer();
-    const base64File = btoa(
-      String.fromCharCode(...new Uint8Array(fileBytes))
-    );
+    const fileBytes = new Uint8Array(await fileResponse.arrayBuffer());
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < fileBytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...fileBytes.subarray(i, i + chunkSize));
+    }
+    const base64File = btoa(binary);
 
     // Determine MIME type from s3_key
     const ext = s3_key.split(".").pop()?.toLowerCase() || "";
