@@ -108,8 +108,15 @@ serve(async (req) => {
       throw new Error(`Failed to download file [${fileResponse.status}]`);
     }
 
-    const fileBytes = await fileResponse.arrayBuffer();
-    const base64File = btoa(String.fromCharCode(...new Uint8Array(fileBytes)));
+    const fileBytes = new Uint8Array(await fileResponse.arrayBuffer());
+
+    // Convert to base64 in chunks to avoid call stack overflow
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < fileBytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...fileBytes.subarray(i, i + chunkSize));
+    }
+    const base64File = btoa(binary);
 
     // Determine MIME type
     const ext = s3_key.split(".").pop()?.toLowerCase() || "";
@@ -118,6 +125,8 @@ serve(async (req) => {
     else if (ext === "jpg" || ext === "jpeg") mimeType = "image/jpeg";
     else if (ext === "svg") mimeType = "image/svg+xml";
     else if (ext === "webp") mimeType = "image/webp";
+    else if (ext === "xlsx") mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    else if (ext === "xls") mimeType = "application/vnd.ms-excel";
 
     // 3. Send to Lovable AI
     const aiResponse = await fetch(
