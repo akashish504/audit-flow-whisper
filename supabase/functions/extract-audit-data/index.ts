@@ -186,6 +186,8 @@ serve(async (req) => {
       );
     }
 
+    console.log(`[extract] Starting extraction for file ${audit_file_id}, key: ${s3_key}`);
+
     // 1. Get signed download URL from S3
     const signResponse = await fetch(
       `${GATEWAY_URL}/api/v1/sign_storage_url?provider=aws_s3&mode=read`,
@@ -206,6 +208,7 @@ serve(async (req) => {
     }
 
     const { url: downloadUrl } = await signResponse.json();
+    console.log("[extract] Got signed URL, downloading file...");
 
     // 2. Download the file
     const fileResponse = await fetch(downloadUrl);
@@ -214,6 +217,8 @@ serve(async (req) => {
     }
 
     const fileBytes = new Uint8Array(await fileResponse.arrayBuffer());
+    console.log(`[extract] Downloaded ${fileBytes.length} bytes, converting to base64...`);
+
     let binary = "";
     const chunkSize = 8192;
     for (let i = 0; i < fileBytes.length; i += chunkSize) {
@@ -229,7 +234,9 @@ serve(async (req) => {
     else if (ext === "png") mimeType = "image/png";
     else if (ext === "jpg" || ext === "jpeg") mimeType = "image/jpeg";
 
-    // 3. Send to Lovable AI for extraction
+    console.log(`[extract] Sending to AI (mime: ${mimeType}, base64 length: ${base64File.length})...`);
+
+    // 3. Send to Lovable AI for extraction using a faster model
     const aiResponse = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -239,7 +246,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model: "google/gemini-3-flash-preview",
           messages: [
             { role: "system", content: STANDARDIZATION_PROMPT },
             {
@@ -261,6 +268,8 @@ serve(async (req) => {
         }),
       }
     );
+
+    console.log(`[extract] AI response status: ${aiResponse.status}`);
 
     if (!aiResponse.ok) {
       if (aiResponse.status === 429) {
@@ -289,8 +298,11 @@ serve(async (req) => {
     try {
       extractedData = JSON.parse(content);
     } catch {
-      throw new Error(`AI returned invalid JSON: ${content.substring(0, 200)}`);
+      console.error("[extract] Invalid JSON from AI:", content.substring(0, 500));
+      throw new Error(`AI returned invalid JSON`);
     }
+
+    console.log("[extract] Successfully parsed AI response, saving to DB...");
 
     // 4. Save extracted data to audit_files table
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -302,6 +314,8 @@ serve(async (req) => {
     if (updateError) {
       throw new Error(`Failed to save extracted data: ${updateError.message}`);
     }
+
+    console.log("[extract] Done!");
 
     return new Response(
       JSON.stringify({ success: true, extracted_data: extractedData }),
