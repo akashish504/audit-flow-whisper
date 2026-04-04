@@ -152,6 +152,47 @@ export type Database = {
           },
         ]
       }
+      entities: {
+        Row: {
+          children: number[]
+          company_id: string
+          created_at: string
+          entity_name: string
+          geolocation: string | null
+          id: string
+          is_parent: boolean
+          sequential_id: number
+        }
+        Insert: {
+          children?: number[]
+          company_id: string
+          created_at?: string
+          entity_name: string
+          geolocation?: string | null
+          id?: string
+          is_parent?: boolean
+          sequential_id: number
+        }
+        Update: {
+          children?: number[]
+          company_id?: string
+          created_at?: string
+          entity_name?: string
+          geolocation?: string | null
+          id?: string
+          is_parent?: boolean
+          sequential_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_chart_files: {
         Row: {
           company_id: string

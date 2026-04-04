@@ -1,246 +1,64 @@
-import { useState, useEffect, useRef } from 'react';
-import { useAppState } from '@/context/AppContext';
-import { Company, taggedFiles, AuditStatus } from '@/data/mockData';
-import { Building2, CheckCircle2, Paperclip, Search, FileText, X, ChevronDown, MapPin } from 'lucide-react';
-import { toast } from 'sonner';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useState, useEffect } from 'react';
+import { Building2, MapPin, Loader2 } from 'lucide-react';
 import { OrgChartUpload } from './OrgChartUpload';
+import { supabase } from '@/integrations/supabase/client';
 
-const statusBadge: Record<string, string> = {
-  'Pending Review': 'bg-yellow-100 text-yellow-800',
-  'Discrepancy Identified': 'bg-red-100 text-red-800',
-  'Clarification Requested': 'bg-blue-100 text-blue-800',
-  'Resolved': 'bg-green-100 text-green-800',
-};
-
-const allStatuses: AuditStatus[] = ['Pending Review', 'Discrepancy Identified', 'Clarification Requested', 'Resolved'];
-
-function FilePickerPopover({ companyId, companyName, onClose }: { companyId: string; companyName: string; onClose: () => void }) {
-  const [search, setSearch] = useState('');
-
-  const filtered = taggedFiles.filter(f =>
-    f.fileName.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const handleAttach = (fileId: string, fileName: string) => {
-    toast.success(`"${fileName}" attached to ${companyName}`);
-    onClose();
-  };
-
-  return (
-    <div className="absolute top-full left-1/2 -translate-x-1/2 z-50 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg p-2">
-      <div className="flex items-center gap-2 mb-2">
-        <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-        <input
-          autoFocus
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search files..."
-          className="w-full text-xs bg-transparent border-none outline-none text-gray-900 placeholder:text-gray-400"
-        />
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-          <X className="h-3.5 w-3.5" />
-        </button>
-      </div>
-      <div className="border-t border-gray-100 pt-1 max-h-48 overflow-auto">
-        {filtered.length === 0 ? (
-          <p className="text-xs text-gray-500 py-3 text-center">No files found</p>
-        ) : (
-          filtered.map(f => (
-            <button
-              key={f.id}
-              onClick={() => handleAttach(f.id, f.fileName)}
-              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left hover:bg-gray-50 transition-all"
-            >
-              <FileText className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-              <div className="min-w-0">
-                <p className="text-xs text-gray-900 truncate">{f.fileName}</p>
-                <p className="text-[10px] text-gray-400">{f.size} · {f.status}</p>
-              </div>
-            </button>
-          ))
-        )}
-      </div>
-    </div>
-  );
+interface OrgEntity {
+  id: string;
+  sequential_id: number;
+  entity_name: string;
+  geolocation: string | null;
+  is_parent: boolean;
+  children: number[];
 }
 
-function OrgNodeCard({ company, isHighlighted, portfolioCompany }: { company: Company; isHighlighted?: boolean; portfolioCompany?: Company }) {
-  const { attachReport, updateEntityStatus, updateCompanyStatus } = useAppState();
-  const [showFilePicker, setShowFilePicker] = useState(false);
-  const [showStatusMenu, setShowStatusMenu] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState<AuditStatus | null>(null);
-  const [alsoUpdatePortfolio, setAlsoUpdatePortfolio] = useState(false);
-  const statusMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!showStatusMenu) return;
-    const handler = (e: MouseEvent) => {
-      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) setShowStatusMenu(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showStatusMenu]);
-
-  const handleAttachReport = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    attachReport(company.id);
-    toast.success(`Audit report attached to ${company.name}`);
-  };
-
-  const handleAttachFile = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowFilePicker(prev => !prev);
-  };
-
-  const confirmEntityStatusChange = () => {
-    if (!pendingStatus) return;
-    updateEntityStatus(company.id, pendingStatus);
-
-    if (alsoUpdatePortfolio && portfolioCompany) {
-      updateCompanyStatus(portfolioCompany.id, pendingStatus);
-      toast.success(`Entity and ${portfolioCompany.name} status updated to "${pendingStatus}"`);
-    } else {
-      toast.success(`Entity status updated to "${pendingStatus}"`);
-    }
-
-    setPendingStatus(null);
-    setAlsoUpdatePortfolio(false);
-    setShowStatusMenu(false);
-  };
-
-  const showPortfolioCheckbox = !!portfolioCompany;
-
+function EntityNodeCard({ entity }: { entity: OrgEntity }) {
   return (
-    <div className={`relative bg-white border rounded-lg shadow-sm px-4 py-3 min-w-[200px] max-w-[240px] hover:shadow-md transition-all group ${isHighlighted ? 'border-blue-400 ring-2 ring-blue-100' : 'border-gray-200'}`}>
+    <div className="relative bg-background border border-border rounded-lg shadow-sm px-4 py-3 min-w-[200px] max-w-[240px] hover:shadow-md transition-all">
       <div className="flex items-center gap-2 mb-1.5">
-        <Building2 className="h-4 w-4 text-blue-500 shrink-0" />
-        <span className="text-sm font-semibold text-gray-900 truncate">{company.name}</span>
+        <Building2 className="h-4 w-4 text-primary shrink-0" />
+        <span className="text-sm font-semibold text-foreground truncate">{entity.entity_name}</span>
       </div>
-
-      {company.geolocation && (
-        <div className="flex items-center gap-1 mb-1.5">
-          <MapPin className="h-3 w-3 text-gray-400" />
-          <span className="text-[10px] text-gray-500">{company.geolocation}</span>
+      {entity.geolocation && (
+        <div className="flex items-center gap-1">
+          <MapPin className="h-3 w-3 text-muted-foreground" />
+          <span className="text-[10px] text-muted-foreground">{entity.geolocation}</span>
         </div>
       )}
-
-      <div className="relative mb-2" ref={statusMenuRef}>
-        <button
-          onClick={(e) => { e.stopPropagation(); setShowStatusMenu(!showStatusMenu); }}
-          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer ${statusBadge[company.entityStatus || company.status] || 'bg-gray-100 text-gray-800'}`}
-        >
-          {company.entityStatus || company.status}
-          <ChevronDown className="h-3 w-3" />
-        </button>
-        {showStatusMenu && (
-          <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[180px]">
-            {allStatuses.map(s => (
-              <button
-                key={s}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPendingStatus(s);
-                  setAlsoUpdatePortfolio(false);
-                  setShowStatusMenu(false);
-                }}
-                className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-2 ${s === (company.entityStatus || company.status) ? 'font-semibold' : ''}`}
-              >
-                <span className={`w-2 h-2 rounded-full ${s === 'Pending Review' ? 'bg-yellow-400' : s === 'Discrepancy Identified' ? 'bg-red-400' : s === 'Clarification Requested' ? 'bg-blue-400' : 'bg-green-400'}`} />
-                {s}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between gap-1">
-        <button
-          onClick={handleAttachFile}
-          className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 px-2 py-1 rounded-md border border-gray-200 opacity-0 group-hover:opacity-100 transition-all"
-        >
-          <FileText className="h-3 w-3" /> Attach File
-        </button>
-        {company.hasAuditReport ? (
-          <span className="flex items-center gap-1 text-xs text-green-600">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Report
-          </span>
-        ) : (
-          <button
-            onClick={handleAttachReport}
-            className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 px-2 py-1 rounded-md border border-gray-200 opacity-0 group-hover:opacity-100 transition-all"
-          >
-            <Paperclip className="h-3 w-3" /> Report
-          </button>
-        )}
-      </div>
-
-      {showFilePicker && (
-        <FilePickerPopover
-          companyId={company.id}
-          companyName={company.name}
-          onClose={() => setShowFilePicker(false)}
-        />
+      {entity.is_parent && (
+        <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary">
+          Holding Company
+        </span>
       )}
-
-      <AlertDialog open={!!pendingStatus} onOpenChange={(open) => { if (!open) { setPendingStatus(null); setAlsoUpdatePortfolio(false); } }}>
-        <AlertDialogContent className="bg-white">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-gray-900">Confirm Status Change</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3">
-                <p className="text-sm text-gray-500">
-                  Change <span className="font-medium text-gray-700">{company.name}</span> status from <span className="font-medium text-gray-700">{company.entityStatus || company.status}</span> to <span className="font-medium text-gray-700">{pendingStatus}</span>?
-                </p>
-                {showPortfolioCheckbox && (
-                  <label className="flex items-start gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={alsoUpdatePortfolio}
-                      onChange={e => setAlsoUpdatePortfolio(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">
-                      Also update <span className="font-medium">{portfolioCompany?.name}</span> status to <span className="font-medium">{pendingStatus}</span>
-                    </span>
-                  </label>
-                )}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="border-gray-300 text-gray-700 hover:bg-gray-50">No</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmEntityStatusChange} className="bg-blue-500 text-white hover:bg-blue-600">Yes</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
 
-function TreeNode({ company, companies, highlightedEntityId, portfolioCompany }: { company: Company; companies: Company[]; highlightedEntityId?: string; portfolioCompany?: Company }) {
-  const children = companies.filter(c => c.parentId === company.id);
+function EntityTreeNode({ entity, allEntities }: { entity: OrgEntity; allEntities: OrgEntity[] }) {
+  const childEntities = entity.children
+    .map(seqId => allEntities.find(e => e.sequential_id === seqId))
+    .filter(Boolean) as OrgEntity[];
 
   return (
     <div className="flex flex-col items-center">
-      <OrgNodeCard company={company} isHighlighted={highlightedEntityId === company.id} portfolioCompany={portfolioCompany} />
-      {children.length > 0 && (
+      <EntityNodeCard entity={entity} />
+      {childEntities.length > 0 && (
         <>
           <div className="w-0.5 h-6 bg-border" />
           <div className="flex gap-8">
-            {children.map((child, idx) => (
+            {childEntities.map((child, idx) => (
               <div key={child.id} className="relative flex flex-col items-center">
                 <div className="w-0.5 h-6 bg-border" />
-                {children.length > 1 && (
+                {childEntities.length > 1 && (
                   <div
                     className="absolute top-0 h-0.5 bg-border"
                     style={{
                       left: idx === 0 ? '50%' : 0,
-                      right: idx === children.length - 1 ? '50%' : 0,
+                      right: idx === childEntities.length - 1 ? '50%' : 0,
                     }}
                   />
                 )}
-                <TreeNode company={child} companies={companies} highlightedEntityId={highlightedEntityId} portfolioCompany={portfolioCompany} />
+                <EntityTreeNode entity={child} allEntities={allEntities} />
               </div>
             ))}
           </div>
@@ -250,24 +68,55 @@ function TreeNode({ company, companies, highlightedEntityId, portfolioCompany }:
   );
 }
 
-export function CompanyOrgChart({ companyId, selectedEntityId }: { companyId: string; selectedEntityId?: string }) {
-  const { companies } = useAppState();
-  const portfolioCompany = companies.find(c => c.id === companyId);
+export function CompanyOrgChart({ companyId }: { companyId: string }) {
   const [orgChartFile, setOrgChartFile] = useState<{ name: string; url: string; type: string } | null>(null);
   const [uploadExpanded, setUploadExpanded] = useState(true);
-  if (!portfolioCompany) return null;
+  const [entities, setEntities] = useState<OrgEntity[]>([]);
+  const [entitiesLoading, setEntitiesLoading] = useState(true);
 
-  let root = portfolioCompany;
-  while (root.parentId) {
-    const parent = companies.find(c => c.id === root.parentId);
-    if (!parent) break;
-    root = parent;
-  }
+  // Load entities from Supabase
+  useEffect(() => {
+    loadEntities();
+  }, [companyId]);
+
+  const loadEntities = async () => {
+    setEntitiesLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('entities')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('sequential_id');
+      if (error) throw error;
+      setEntities((data || []).map(row => ({
+        id: row.id,
+        sequential_id: row.sequential_id,
+        entity_name: row.entity_name,
+        geolocation: row.geolocation,
+        is_parent: row.is_parent,
+        children: row.children || [],
+      })));
+    } catch (err) {
+      console.error('Failed to load entities:', err);
+    } finally {
+      setEntitiesLoading(false);
+    }
+  };
 
   const handleOrgChartUploaded = (_file: File, url: string) => {
     setOrgChartFile({ name: _file.name, url, type: _file.type });
     setUploadExpanded(false);
+    // Reload entities in case they were added after upload
+    loadEntities();
   };
+
+  const handleClear = () => {
+    setOrgChartFile(null);
+    setUploadExpanded(true);
+    // Entities will be cleared via OrgChartUpload's handleClear which also deletes entities
+  };
+
+  const root = entities.find(e => e.is_parent);
 
   return (
     <div className="p-6 overflow-auto h-full space-y-6">
@@ -284,23 +133,92 @@ export function CompanyOrgChart({ companyId, selectedEntityId }: { companyId: st
           companyId={companyId}
           onFileUploaded={handleOrgChartUploaded}
           uploadedFile={orgChartFile}
-          onClear={() => { setOrgChartFile(null); setUploadExpanded(true); }}
+          onClear={handleClear}
         />
       )}
 
-      {orgChartFile && (
+      {entitiesLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : entities.length > 0 ? (
         <div>
-          <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">Entity Structure</h3>
+          <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-4">Entity Structure</h3>
           <div className="inline-flex justify-center min-w-full">
-            <TreeNode
-              company={root}
-              companies={companies}
-              highlightedEntityId={selectedEntityId}
-              portfolioCompany={portfolioCompany}
-            />
+            {root ? (
+              <EntityTreeNode entity={root} allEntities={entities} />
+            ) : (
+              <div className="text-sm text-muted-foreground">No root entity found. Ensure one entity has is_parent: true.</div>
+            )}
           </div>
         </div>
-      )}
+      ) : orgChartFile ? (
+        <div className="text-center py-8">
+          <p className="text-sm text-muted-foreground">No entities parsed yet.</p>
+          <p className="text-xs text-muted-foreground mt-1">Use ChatGPT with the extraction prompt to parse the org chart, then paste the JSON below.</p>
+          <EntityJsonInput companyId={companyId} onEntitiesSaved={loadEntities} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function EntityJsonInput({ companyId, onEntitiesSaved }: { companyId: string; onEntitiesSaved: () => void }) {
+  const [json, setJson] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    let parsed: any[];
+    try {
+      parsed = JSON.parse(json);
+      if (!Array.isArray(parsed)) throw new Error('Must be an array');
+    } catch {
+      alert('Invalid JSON. Paste the array output from ChatGPT.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Delete existing entities for this company
+      await supabase.from('entities').delete().eq('company_id', companyId);
+
+      // Insert new entities
+      const rows = parsed.map((e: any) => ({
+        company_id: companyId,
+        sequential_id: Number(e.id),
+        entity_name: e.entity_name,
+        geolocation: e.geolocation || null,
+        is_parent: !!e.is_parent,
+        children: (e.children || []).map(Number),
+      }));
+
+      const { error } = await supabase.from('entities').insert(rows);
+      if (error) throw error;
+
+      setJson('');
+      onEntitiesSaved();
+    } catch (err: any) {
+      alert(`Failed to save: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 space-y-3 max-w-xl mx-auto">
+      <textarea
+        value={json}
+        onChange={e => setJson(e.target.value)}
+        placeholder='Paste JSON array from ChatGPT here...'
+        className="w-full h-48 text-xs font-mono border border-border rounded-lg p-3 bg-background text-foreground resize-y"
+      />
+      <button
+        onClick={handleSave}
+        disabled={saving || !json.trim()}
+        className="px-4 py-2 text-xs font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg disabled:opacity-50 transition-colors"
+      >
+        {saving ? 'Saving...' : 'Save Entities'}
+      </button>
     </div>
   );
 }

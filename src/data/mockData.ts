@@ -137,20 +137,7 @@ export const companies: Company[] = [
   ], contactEmail: 'd.kim@meridian-rx.com', contactName: 'David Kim', hasAuditReport: true, entityStatus: 'Pending Review', geolocation: 'Singapore' },
 ];
 
-export const entityFiles: EntityFile[] = [
-  { id: 'ef1', fileName: 'Acme_Corp_Q4_2024_Audit.pdf', entityId: 'acme', entityName: 'Acme Corp', companyId: 'acme', reviewPeriod: 'Q4 2024' },
-  { id: 'ef1b', fileName: 'Acme_Corp_Q4_2024_Supplementary.xlsx', entityId: 'acme', entityName: 'Acme Corp', companyId: 'acme', reviewPeriod: 'Q4 2024' },
-  { id: 'ef2', fileName: 'Acme_EU_Q4_2024_Audit.pdf', entityId: 'acme-eu', entityName: 'Acme Europe GmbH', companyId: 'acme', reviewPeriod: 'Q4 2024' },
-  { id: 'ef2b', fileName: 'Acme_EU_Q4_2024_Annexure.pdf', entityId: 'acme-eu', entityName: 'Acme Europe GmbH', companyId: 'acme', reviewPeriod: 'Q4 2024' },
-  { id: 'ef3', fileName: 'Acme_Asia_Q4_2024_Audit.pdf', entityId: 'acme-asia', entityName: 'Acme Asia Pacific', companyId: 'acme', reviewPeriod: 'Q4 2024' },
-  { id: 'ef4', fileName: 'Acme_Corp_Q3_2024_Audit.pdf', entityId: 'acme', entityName: 'Acme Corp', companyId: 'acme', reviewPeriod: 'Q3 2024' },
-  { id: 'ef5', fileName: 'Nexus_Tech_Q4_2024_Report.pdf', entityId: 'nexus', entityName: 'Nexus Technologies', companyId: 'nexus', reviewPeriod: 'Q4 2024' },
-  { id: 'ef5b', fileName: 'Nexus_Tech_Q4_2024_Notes.pdf', entityId: 'nexus', entityName: 'Nexus Technologies', companyId: 'nexus', reviewPeriod: 'Q4 2024' },
-  { id: 'ef6', fileName: 'Nexus_AI_Q4_2024_Report.pdf', entityId: 'nexus-ai', entityName: 'Nexus AI Labs', companyId: 'nexus', reviewPeriod: 'Q4 2024' },
-  { id: 'ef7', fileName: 'Meridian_Health_Q4_2024.pdf', entityId: 'meridian', entityName: 'Meridian Health', companyId: 'meridian', reviewPeriod: 'Q4 2024' },
-  { id: 'ef7b', fileName: 'Meridian_Health_Q4_2024_Schedules.xlsx', entityId: 'meridian', entityName: 'Meridian Health', companyId: 'meridian', reviewPeriod: 'Q4 2024' },
-  { id: 'ef8', fileName: 'Meridian_Pharma_Q4_2024.pdf', entityId: 'meridian-rx', entityName: 'Meridian Pharma', companyId: 'meridian', reviewPeriod: 'Q4 2024' },
-];
+export const entityFiles: EntityFile[] = [];
 
 export const reconciliationData: Record<string, ReconciliationField[]> = {
   acme: [
