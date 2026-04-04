@@ -4,7 +4,7 @@ import { ArrowLeft, FileText, Loader2, ExternalLink, Sparkles } from 'lucide-rea
 import { supabase } from '@/integrations/supabase/client';
 import { getSignedUrl } from '@/lib/s3Upload';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
