@@ -9,9 +9,10 @@ interface OrgChartUploadProps {
   onFileUploaded: (file: File, url: string) => void;
   uploadedFile?: { name: string; url: string; type: string } | null;
   onClear: () => void;
+  onExtractionStarted?: () => void;
 }
 
-export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClear }: OrgChartUploadProps) {
+export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClear, onExtractionStarted }: OrgChartUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,7 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
       // Get signed URL for preview
       const url = await getSignedUrl(s3Key, 'read');
       onFileUploaded(file, url);
+      onExtractionStarted?.();
       toast.success(`Org chart "${file.name}" uploaded — extracting entities...`);
 
       // Trigger AI extraction in the background
@@ -94,8 +96,6 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
           toast.error(`Entity extraction failed: ${result.error}`);
         } else {
           toast.success(`${result?.count || 0} entities extracted successfully`);
-          // Notify parent to reload entities
-          onFileUploaded(file, url);
         }
       });
     } catch (err: any) {
