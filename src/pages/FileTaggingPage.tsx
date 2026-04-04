@@ -99,28 +99,84 @@ export default function FileTaggingPage() {
     setUploadCompanyName('');
     setUploadEntityId('');
     setUploadFileName('');
+    setUploadFile(null);
     setShowUploadDialog(true);
   };
 
-  const handleUploadConfirm = () => {
-    if (!uploadFileName) {
+  const handleUploadConfirm = async () => {
+    if (!uploadFile) {
       toast.error('Please select a file to upload');
       return;
     }
-    const entity = uploadEntityId ? companies.find(c => c.id === uploadEntityId) : null;
-    const newFile: TaggedFile = {
-      id: `f-${Date.now()}`,
-      fileName: uploadFileName,
-      fileType: 'pdf',
-      uploadedAt: new Date().toISOString(),
-      size: '1.5 MB',
-      taggedEntityId: uploadEntityId || null,
-      taggedEntityName: entity?.name || null,
-      status: 'pending',
-    };
-    setFiles(prev => [newFile, ...prev]);
-    setShowUploadDialog(false);
-    toast.success(entity ? `File uploaded and tagged to ${entity.name}` : 'File uploaded successfully');
+
+    setUploading(true);
+    try {
+      // Determine company_id — look up from Supabase companies table
+      let companyId = '';
+      let entityName = uploadFileName;
+
+      if (uploadCompanyName) {
+        const { data: companyData } = await supabase
+          .from('companies')
+          .select('id')
+          .ilike('name', uploadCompanyName)
+          .limit(1)
+          .maybeSingle();
+        if (companyData) companyId = companyData.id;
+      }
+
+      if (!companyId) {
+        // Use first company as fallback
+        const { data: firstCompany } = await supabase
+          .from('companies')
+          .select('id')
+          .limit(1)
+          .maybeSingle();
+        companyId = firstCompany?.id || '';
+      }
+
+      if (!companyId) {
+        toast.error('No company found to associate the file with');
+        setUploading(false);
+        return;
+      }
+
+      const entity = uploadEntityId ? companies.find(c => c.id === uploadEntityId) : null;
+      entityName = entity?.name || uploadCompanyName || 'Untagged';
+
+      const s3Key = generateS3Key(`audit-files/${companyId}`, uploadFile.name);
+
+      // Upload to S3
+      await uploadFileToS3(uploadFile, s3Key);
+
+      // Format file size
+      const sizeKB = uploadFile.size / 1024;
+      const fileSize = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${Math.round(sizeKB)} KB`;
+
+      // Save metadata to Supabase
+      const { error } = await supabase
+        .from('audit_files')
+        .insert({
+          company_id: companyId,
+          file_name: uploadFile.name,
+          file_type: uploadFile.type,
+          file_size: fileSize,
+          s3_key: s3Key,
+          entity_name: entityName,
+          review_period: uploadCycleId ? (rcCycles.find(c => c.id === uploadCycleId)?.label || '') : '',
+        });
+
+      if (error) throw error;
+
+      setShowUploadDialog(false);
+      toast.success(entity ? `File uploaded and tagged to ${entity.name}` : 'File uploaded successfully');
+      await loadFiles();
+    } catch (err: any) {
+      console.error('Upload failed:', err);
+      toast.error(`Upload failed: ${err.message}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
   // Tag flow — auto-advance handlers
