@@ -199,7 +199,7 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
         >
           <Upload className="h-8 w-8 text-muted-foreground/30 mb-2" />
           <p className="text-sm text-muted-foreground">Click to upload org chart</p>
-          <p className="text-xs text-muted-foreground/70 mt-1">PNG, JPG, SVG, WebP, or PDF</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">PNG, JPG, SVG, WebP, PDF, or Excel</p>
         </div>
       )}
     </div>
