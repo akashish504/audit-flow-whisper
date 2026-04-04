@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.extract-audit-data]
 verify_jwt = false
+
+[functions.extract-org-chart]
+verify_jwt = false

@@ -80,7 +80,24 @@ export function OrgChartUpload({ companyId, onFileUploaded, uploadedFile, onClea
       // Get signed URL for preview
       const url = await getSignedUrl(s3Key, 'read');
       onFileUploaded(file, url);
-      toast.success(`Org chart "${file.name}" uploaded to S3`);
+      toast.success(`Org chart "${file.name}" uploaded — extracting entities...`);
+
+      // Trigger AI extraction in the background
+      supabase.functions.invoke('extract-org-chart', {
+        body: { company_id: companyId, s3_key: s3Key },
+      }).then(({ data: result, error: extractError }) => {
+        if (extractError) {
+          console.error('Extraction failed:', extractError);
+          toast.error(`Entity extraction failed: ${extractError.message}`);
+        } else if (result?.error) {
+          console.error('Extraction error:', result.error);
+          toast.error(`Entity extraction failed: ${result.error}`);
+        } else {
+          toast.success(`${result?.count || 0} entities extracted successfully`);
+          // Notify parent to reload entities
+          onFileUploaded(file, url);
+        }
+      });
     } catch (err: any) {
       console.error('Upload failed:', err);
       toast.error(`Upload failed: ${err.message}`);
