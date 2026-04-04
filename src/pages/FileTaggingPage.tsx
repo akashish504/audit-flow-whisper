@@ -398,12 +398,15 @@ export default function FileTaggingPage() {
             </div>
 
             <div className="flex justify-end gap-2">
-              <button onClick={() => setShowUploadDialog(false)} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Cancel</button>
+              <button onClick={() => setShowUploadDialog(false)} disabled={uploading} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50">Cancel</button>
               <button
                 onClick={handleUploadConfirm}
-                disabled={!uploadFileName}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${uploadFileName ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-              >Upload</button>
+                disabled={!uploadFile || uploading}
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${uploadFile && !uploading ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+              >
+                {uploading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {uploading ? 'Uploading...' : 'Upload'}
+              </button>
             </div>
           </div>
         </div>
