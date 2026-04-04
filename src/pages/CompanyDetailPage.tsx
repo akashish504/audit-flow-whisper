@@ -61,10 +61,6 @@ export default function CompanyDetailPage() {
     setPendingStatus(null);
   };
 
-  const handlePeriodChange = (periodId: string) => {
-    setActiveAuditPeriod(company.id, periodId);
-    toast.success('Review period changed');
-  };
 
   return (
     <div className="h-full flex flex-col overflow-hidden relative">
