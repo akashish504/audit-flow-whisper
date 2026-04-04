@@ -269,8 +269,8 @@ export default function FileTaggingPage() {
               return (
                 <tr
                   key={file.id}
-                  className={`hover:bg-gray-50 transition-all ${file.status === 'processed' ? 'cursor-pointer' : ''}`}
-                  onClick={() => file.status === 'processed' && navigate(`/file-tagging/${file.id}`)}
+                  className="hover:bg-gray-50 transition-all cursor-pointer"
+                  onClick={() => navigate(`/file-tagging/${file.id}`)}
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
