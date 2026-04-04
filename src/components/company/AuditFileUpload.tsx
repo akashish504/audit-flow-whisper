@@ -134,6 +134,18 @@ export function AuditFileUpload({ companyId, files, onFilesChange, availableEnti
           entityName: selectedEntity,
           s3Key: s3Key,
         });
+
+        // Trigger AI extraction in the background
+        supabase.functions.invoke('extract-audit-data', {
+          body: { audit_file_id: data.id, s3_key: s3Key },
+        }).then(({ data: extractResult, error: extractError }) => {
+          if (extractError) {
+            console.error('Extraction failed:', extractError);
+            toast.error(`AI extraction failed for ${file.name}`);
+          } else {
+            toast.success(`Financial data extracted from ${file.name}`);
+          }
+        });
       }
 
       onFilesChange([...newFiles, ...files]);

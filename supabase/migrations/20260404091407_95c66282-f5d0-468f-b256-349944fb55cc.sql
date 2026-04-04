@@ -1,0 +1,1 @@
+ALTER TABLE public.audit_files ADD COLUMN extracted_data jsonb DEFAULT NULL;
