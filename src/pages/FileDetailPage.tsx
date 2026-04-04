@@ -22,10 +22,15 @@ export default function FileDetailPage() {
   const [file, setFile] = useState<AuditFile | null>(null);
   const [loading, setLoading] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!fileId) return;
     loadFile();
+    return () => {
+      // Clean up blob URL on unmount
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
   }, [fileId]);
 
   const loadFile = async () => {
@@ -42,9 +47,22 @@ export default function FileDetailPage() {
 
       setFile(data as AuditFile);
 
-      // Get signed URL for preview
       const url = await getSignedUrl(data.s3_key, 'read');
       setPreviewUrl(url);
+
+      // Fetch as blob for inline preview (avoids Chrome cross-origin iframe blocking)
+      const isPdf = data.file_type === 'application/pdf' || data.file_name.endsWith('.pdf');
+      const isImage = data.file_type.startsWith('image/');
+      if (isPdf || isImage) {
+        try {
+          const resp = await fetch(url);
+          const blob = await resp.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          setBlobUrl(objectUrl);
+        } catch (e) {
+          console.error('Failed to fetch file blob:', e);
+        }
+      }
     } catch (err) {
       console.error('Failed to load file:', err);
     } finally {
