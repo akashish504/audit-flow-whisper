@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TaggedFile, companies } from '@/data/mockData';
 import { useAppState } from '@/context/AppContext';
-import { FileText, Upload, Tag, CheckCircle2, Clock, AlertTriangle, RotateCcw, ChevronLeft, CloudUpload } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { uploadFileToS3, generateS3Key } from '@/lib/s3Upload';
+import { FileText, Upload, Tag, CheckCircle2, Clock, AlertTriangle, RotateCcw, ChevronLeft, CloudUpload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusConfig: Record<string, { icon: React.ElementType; badge: string }> = {
@@ -15,6 +17,7 @@ type TagStep = 'cycle' | 'company' | 'entity' | 'confirm';
 
 export default function FileTaggingPage() {
   const [files, setFiles] = useState<TaggedFile[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(true);
   const navigate = useNavigate();
   const { rcCycles, rcEntries } = useAppState();
 
@@ -24,6 +27,8 @@ export default function FileTaggingPage() {
   const [uploadCompanyName, setUploadCompanyName] = useState('');
   const [uploadEntityId, setUploadEntityId] = useState('');
   const [uploadFileName, setUploadFileName] = useState('');
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   // Tag flow state — auto-advance
   const [taggingFileId, setTaggingFileId] = useState<string | null>(null);
@@ -33,6 +38,39 @@ export default function FileTaggingPage() {
   const [tagEntityId, setTagEntityId] = useState('');
 
   const entities = companies.filter(c => c.parentId !== null);
+
+  // Load files from Supabase on mount
+  useEffect(() => {
+    loadFiles();
+  }, []);
+
+  const loadFiles = async () => {
+    setLoadingFiles(true);
+    try {
+      const { data, error } = await supabase
+        .from('audit_files')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+
+      const mapped: TaggedFile[] = (data || []).map(row => ({
+        id: row.id,
+        fileName: row.file_name,
+        fileType: row.file_type,
+        uploadedAt: row.created_at,
+        size: row.file_size,
+        taggedEntityId: row.company_id,
+        taggedEntityName: row.entity_name,
+        status: row.extracted_data ? 'processed' as const : 'pending' as const,
+      }));
+      setFiles(mapped);
+    } catch (err) {
+      console.error('Failed to load files:', err);
+      toast.error('Failed to load files');
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
 
   const companiesForCycle = (cycleId: string) => {
     const names = new Set(rcEntries.filter(e => e.reviewCycleId === cycleId).map(e => e.companyName));
