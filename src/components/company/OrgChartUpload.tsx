@@ -7,6 +7,7 @@ import { uploadFileToS3, generateS3Key, getSignedUrl } from '@/lib/s3Upload';
 interface OrgChartUploadProps {
   companyId: string;
   onFileUploaded: (file: File, url: string) => void;
+  onFileLoaded?: (info: { name: string; url: string; type: string }) => void;
   uploadedFile?: { name: string; url: string; type: string } | null;
   onClear: () => void;
   onExtractionStarted?: () => void;
