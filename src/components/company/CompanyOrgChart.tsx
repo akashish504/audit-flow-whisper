@@ -154,6 +154,10 @@ export function CompanyOrgChart({ companyId }: { companyId: string }) {
     loadEntities();
   };
 
+  const handleFileLoaded = (info: { name: string; url: string; type: string }) => {
+    setOrgChartFile(info);
+  };
+
   const handleExtractionStarted = () => {
     setEntities([]);
     setEntitiesLoading(false);
