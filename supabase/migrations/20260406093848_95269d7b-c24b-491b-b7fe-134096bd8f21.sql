@@ -1,0 +1,18 @@
+INSERT INTO companies (name, status, has_audit_report, is_archived, audit_period) VALUES
+('Capillary', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('Cardekho FY25', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('Chocolate Finance', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('Classplus', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('Dailyhunt Consol', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('Invideo FY25', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('Invideo India Entity FY25', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('Lemonilo CY23', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('Lila', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('Neurowyzr', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('Newtrace Standalone', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('Rukita', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('Sarvagram Consol', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('Scaler Consolidated', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('Scaler Standalone', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('UrbanPiper', 'Pending Review', false, false, 'CY 24 - FY 25'),
+('Zuper', 'Pending Review', false, false, 'CY 24 - FY 25');
