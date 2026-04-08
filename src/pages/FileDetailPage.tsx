@@ -81,15 +81,31 @@ export default function FileDetailPage() {
         body: { audit_file_id: file.id, s3_key: file.s3_key },
       });
 
-      if (error) throw error;
+      // supabase-js wraps non-2xx as FunctionsHttpError with context
+      if (error) {
+        // Try to parse the error body for structured messages
+        const errorBody = typeof error === 'object' && 'context' in error
+          ? await (error as any).context?.json?.().catch(() => null)
+          : null;
+        const msg = errorBody?.error || data?.error || error.message || 'Extraction failed';
+
+        if (msg.toLowerCase().includes('payment required') || msg.toLowerCase().includes('add funds')) {
+          toast.error('AI credits exhausted. Please add funds in Settings → Workspace → Usage.');
+        } else if (msg.toLowerCase().includes('rate limit')) {
+          toast.error('Rate limited. Please wait a moment and try again.');
+        } else {
+          toast.error(msg);
+        }
+        return;
+      }
+
+      // Also check for error in data (edge function may return 200 with error field)
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
 
       if (data?.extracted_data) {
-        // Save extracted data to the database
-        await supabase
-          .from('audit_files')
-          .update({ extracted_data: data.extracted_data })
-          .eq('id', file.id);
-
         setFile({ ...file, extracted_data: data.extracted_data });
         toast.success('Data extracted successfully');
       } else {
